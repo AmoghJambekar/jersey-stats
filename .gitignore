@@ -46,3 +46,6 @@ Thumbs.db
 # Local databases
 *.db
 docker-data/
+
+# Generated schedule exports (scripts/test_stats)
+data/games_regular*.csv
