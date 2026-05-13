@@ -1,0 +1,2 @@
+# NBA.com stats client — https://github.com/swar/nba_api
+nba_api>=1.11,<2

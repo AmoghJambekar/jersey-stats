@@ -1,3 +1,7 @@
+# Python (scripts/test_stats — NBA.com batch experiments)
+scripts/test_stats/.venv/
+.venv-nba/
+
 # Environment and secrets
 .env
 .env.*
