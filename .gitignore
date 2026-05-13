@@ -1,0 +1,44 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Go
+/bin/
+/dist/
+/build/
+coverage.out
+coverage.html
+*.test
+*.prof
+vendor/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# sqlc / codegen (uncomment if you prefer not to commit generated code)
+# internal/db/
+
+# Local databases
+*.db
+docker-data/
