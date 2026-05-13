@@ -24,12 +24,6 @@ Run the API stub:
 go run ./cmd/server
 ```
 
-## Toolchain (pinning versions)
-
-**What “pin tool versions” means:** You record **exact** (or minimum) versions of tools and language runtimes the repo is tested with—Go, Node, `sqlc`, migration CLI—so a teammate or CI uses the **same** versions and you avoid “works on my machine” drift (different `sqlc` → different generated code, different Go → different stdlib behavior).
-
-**How:** Put versions in `README` or a `Makefile` / `mise.toml` / `.tool-versions` (asdf) / `package.json` `engines` for Node; in CI, install those versions explicitly. This repo does not yet declare pins beyond `go` in `go.mod`; add Node and `sqlc` when the frontend and codegen land.
-
 ## Stack (target)
 
 | Layer | Choice |
