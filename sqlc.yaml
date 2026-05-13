@@ -1,0 +1,15 @@
+# sqlc — see docs/ROADMAP.md §8. Run: sqlc generate
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema:
+      - db/schema
+    queries:
+      - db/queries
+    gen:
+      go:
+        package: "gen"
+        out: "internal/db/gen"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_empty_slices: true

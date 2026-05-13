@@ -1,6 +1,12 @@
-# Python (scripts/test_stats — NBA.com batch experiments)
-scripts/test_stats/.venv/
+# Python (scripts/nba — NBA.com batch ingestion)
+scripts/nba/.venv/
 .venv-nba/
+
+# sqlc generated (remove this ignore entry if you prefer to commit gen/)
+internal/db/gen/
+
+# Generated schedule exports
+data/games_regular*.csv
 
 # Environment and secrets
 .env
@@ -40,12 +46,7 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 
-# sqlc / codegen (uncomment if you prefer not to commit generated code)
-# internal/db/
-
 # Local databases
 *.db
 docker-data/
 
-# Generated schedule exports (scripts/test_stats)
-data/games_regular*.csv
