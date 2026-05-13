@@ -1,6 +1,6 @@
 # JerseyStats
 
-NBA team and player stats filtered by **jersey colorway** (manual LockerVision–backed assignments). Product decisions and v1 scope live in **[docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md)**.
+NBA team and player stats filtered by **jersey colorway**.
 
 ## Repository layout
 
@@ -32,7 +32,3 @@ go run ./cmd/server
 | DB | Postgres, sqlc |
 | Web | Next.js + Tailwind (under `frontend/`) |
 | Hosting | API: Railway or Render; DB: Supabase; Web: Vercel |
-
-## License
-
-Proprietary — no public license file.
