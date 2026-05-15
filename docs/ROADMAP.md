@@ -1,6 +1,6 @@
-# JerseyStats roadmap
+# JerseyStats — roadmap and monorepo contract
 
-This file is the **single source of truth** for product direction and delivery order. Check items off as you ship.
+This file is the **single source of truth** for product direction and delivery order.
 
 ---
 
