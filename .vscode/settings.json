@@ -1,6 +1,0 @@
-{
-  "git.scanRepositories": ["."],
-  "search.exclude": {
-    "**/.claude/worktrees": true
-  }
-}

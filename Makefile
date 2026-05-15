@@ -1,8 +1,8 @@
-# JerseyStats — local tasks (docs/ROADMAP.md §19)
+# JerseyStats — local tasks (see docs/prd.md)
 .PHONY: help db-up db-down run-api sqlc ingest-games
 
 help:
-	@echo "Targets: db-up db-down run-api sqlc ingest-games (see docs/ROADMAP.md)"
+	@echo "Targets: db-up db-down run-api sqlc ingest-games"
 
 db-up:
 	docker compose up -d postgres
@@ -11,10 +11,10 @@ db-down:
 	docker compose down
 
 run-api:
-	go run ./cmd/api
+	cd backend && go run ./cmd/api
 
 sqlc:
-	sqlc generate
+	cd backend && sqlc generate
 
 ingest-games:
-	python scripts/nba/fetch_regular_season_games.py --season 2024-25 -o data/games_regular_2024_25.csv
+	python backend/scripts/fetch_regular_season_games.py --season 2024-25

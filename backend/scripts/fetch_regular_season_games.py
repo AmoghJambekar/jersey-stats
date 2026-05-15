@@ -14,10 +14,10 @@ Output columns (CSV):
 non-preseason bucket).
 
 Examples:
-  python scripts/nba/fetch_regular_season_games.py --season 2024-25 -o data/games_regular_2024_25.csv
-  python scripts/nba/fetch_regular_season_games.py --season 2025-26 | head
+  python backend/scripts/fetch_regular_season_games.py --season 2024-25
+  python backend/scripts/fetch_regular_season_games.py --season 2025-26 | head
 
-See docs/ROADMAP.md §3.
+See docs/prd.md REQ-002.
 """
 from __future__ import annotations
 

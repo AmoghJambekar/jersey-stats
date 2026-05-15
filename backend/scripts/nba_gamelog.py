@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""One-off fetch: regular-season game logs from NBA.com via nba_api.
+"""Fetch regular-season game logs from NBA.com via nba_api.
 
-Batch-only probe (docs/ROADMAP.md §2, Appendix). The Go API should read Postgres,
-not NBA.com, per request.
-
+The Go API should read Postgres, not NBA.com.
 Examples:
-  python scripts/nba/nba_gamelog.py
-  python scripts/nba/nba_gamelog.py --player "Jalen Brunson" --season 2024-25
+  python backend/scripts/nba_gamelog.py
+  python backend/scripts/nba_gamelog.py --player "Jalen Brunson" --season 2024-25
 
-Client: https://github.com/swar/nba_api — respect https://www.nba.com/ terms of use.
+Client: https://github.com/swar/nba_api
 """
+
+
 from __future__ import annotations
 
 import argparse

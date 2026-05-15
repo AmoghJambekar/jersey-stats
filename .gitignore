@@ -1,12 +1,9 @@
-# Python (scripts/nba — NBA.com batch ingestion)
-scripts/nba/.venv/
+# Python (backend/scripts — NBA.com batch ingestion)
+backend/scripts/.venv/
 .venv-nba/
 
-# sqlc generated (remove this ignore entry if you prefer to commit gen/)
-internal/db/gen/
-
-# Generated schedule exports
-data/games_regular*.csv
+# sqlc generated
+backend/internal/db/gen/
 
 # Environment and secrets
 .env
@@ -14,10 +11,13 @@ data/games_regular*.csv
 !.env.example
 *.pem
 
-# Go
+# Go binaries and build artifacts
 /bin/
 /dist/
 /build/
+backend/api
+backend/ingest
+backend/jerseyctl
 coverage.out
 coverage.html
 *.test
@@ -46,11 +46,8 @@ Thumbs.db
 *.swp
 *.swo
 .idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
 
 # Local databases
 *.db
 docker-data/
-
