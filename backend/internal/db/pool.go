@@ -7,20 +7,27 @@ package db
 import (
 	"context"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Connect opens a pgxpool connection to Postgres.
+// Connect opens a pgxpool connection to Postgres and verifies connectivity.
 //
 // Usage:
 //
 //	pool, err := db.Connect(ctx, cfg.DatabaseURL)
 //	defer pool.Close()
-func Connect(ctx context.Context, databaseURL string) error {
-	// TODO: pgxpool.New(ctx, databaseURL)
-	// TODO: pool.Ping(ctx) to verify connectivity
-	_ = ctx
+func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	if databaseURL == "" {
-		return fmt.Errorf("DATABASE_URL is empty")
+		return nil, fmt.Errorf("DATABASE_URL is empty")
 	}
-	return fmt.Errorf("db.Connect not yet implemented")
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("creating pool: %w", err)
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("pinging database: %w", err)
+	}
+	return pool, nil
 }

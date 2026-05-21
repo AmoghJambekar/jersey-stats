@@ -5,20 +5,28 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
-	"os"
+	"net/http"
 
 	"jerseystats/internal/config"
+	"jerseystats/internal/db"
+	"jerseystats/internal/httpapi"
 )
 
 func main() {
 	cfg := config.Load()
 
-	// TODO: open pgxpool using cfg.DatabaseURL
-	// TODO: build chi router via httpapi.NewRouter(pool)
-	// TODO: start http.ListenAndServe on cfg.Port
+	pool, err := db.Connect(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("db connect: %v", err)
+	}
+	defer pool.Close()
+
+	router := httpapi.NewRouter(pool)
 
 	log.Printf("starting JerseyStats API on :%s", cfg.Port)
-	fmt.Fprintln(os.Stderr, "not yet implemented — wire DB pool and router")
+	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+		log.Fatalf("server: %v", err)
+	}
 }

@@ -8,17 +8,24 @@
 // See docs/prd.md REQ-002 for requirements.
 package nba
 
+import (
+	"net/http"
+
+	"golang.org/x/time/rate"
+)
+
 // Client fetches game and player data from stats.nba.com.
 type Client struct {
-	// TODO: http.Client with custom transport
-	// TODO: rate limiter (golang.org/x/time/rate)
+	http    *http.Client
+	limiter *rate.Limiter
 }
 
-// NewClient creates an NBA Stats API client with rate limiting.
+// NewClient creates an NBA Stats API client with rate limiting (1 req/sec).
 func NewClient() *Client {
-	// TODO: configure rate limiter (1 req/sec)
-	// TODO: set browser-like headers
-	return &Client{}
+	return &Client{
+		http:    &http.Client{},
+		limiter: rate.NewLimiter(rate.Limit(1), 1), // 1 request per second, burst of 1
+	}
 }
 
 // GameLogEntry holds one row from a team's game log.
