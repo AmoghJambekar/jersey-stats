@@ -37,23 +37,22 @@ CREATE TABLE game_jersey_assignments (
   UNIQUE(game_id, team_id)
 );
 
--- TODO: player_game_logs table for per-player stats (REQ-002)
--- CREATE TABLE player_game_logs (
---   id          SERIAL PRIMARY KEY,
---   game_id     TEXT NOT NULL REFERENCES games(game_id),
---   player_id   TEXT NOT NULL,
---   player_name TEXT NOT NULL,
---   team_id     TEXT NOT NULL REFERENCES teams(id),
---   pts         INT,
---   reb         INT,
---   ast         INT,
---   fgm         INT,
---   fga         INT,
---   fg3m        INT,
---   fg3a        INT,
---   ftm         INT,
---   fta         INT,
---   min         NUMERIC(5,1),
---   plus_minus  NUMERIC(5,1),
---   UNIQUE(game_id, player_id)
--- );
+CREATE TABLE player_game_logs (
+  id          SERIAL PRIMARY KEY,
+  game_id     TEXT NOT NULL REFERENCES games(game_id),
+  player_id   TEXT NOT NULL,
+  player_name TEXT NOT NULL,
+  team_id     TEXT NOT NULL REFERENCES teams(id),
+  pts         INT,
+  reb         INT,
+  ast         INT,
+  fgm         INT,
+  fga         INT,
+  fg3m        INT,
+  fg3a        INT,
+  ftm         INT,
+  fta         INT,
+  min         NUMERIC(5,1),
+  plus_minus  NUMERIC(5,1),
+  UNIQUE(game_id, player_id)
+);
