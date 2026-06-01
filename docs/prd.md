@@ -189,9 +189,9 @@ CREATE TABLE game_jersey_assignments (
 - [ ] Querying games without assignments returns the correct missing set
 
 **Task Breakdown:**
-- Write and apply migrations: Small (3h)
-- Seed 30 team records: Small (1h)
-- Seed jersey edition records for all 30 teams: Medium (4h)
+- Write and apply migrations: Small
+- Seed 30 team records: Small
+- Seed jersey edition records for all 30 teams: Medium 
 
 **Dependencies:** None
 
