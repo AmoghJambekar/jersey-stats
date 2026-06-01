@@ -4,32 +4,261 @@
 // returns an http.HandlerFunc. See docs/prd.md REQ-003, REQ-004.
 package handler
 
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+
+	"jerseystats/internal/db/gen"
+)
+
+const defaultSeason = "2025-26"
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func toFloat(n pgtype.Numeric) float64 {
+	v, err := n.Float64Value()
+	if err != nil || !v.Valid {
+		return 0
+	}
+	return v.Float64
+}
+
+// --- Response types ---
+
+type teamResp struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	City string `json:"city"`
+}
+
+type teamDetailResp struct {
+	ID      string       `json:"id"`
+	Name    string       `json:"name"`
+	City    string       `json:"city"`
+	Jerseys []jerseyResp `json:"jerseys"`
+}
+
+type jerseyResp struct {
+	ID          int32    `json:"id"`
+	EditionName string   `json:"edition_name"`
+	ColorTags   []string `json:"color_tags"`
+	Season      string   `json:"season"`
+}
+
+type teamJerseyStatsResp struct {
+	EditionName string   `json:"edition_name"`
+	ColorTags   []string `json:"color_tags"`
+	GamesPlayed int32    `json:"games_played"`
+	Wins        int32    `json:"wins"`
+	Losses      int32    `json:"losses"`
+	PPG         float64  `json:"ppg"`
+	OppPPG      float64  `json:"opp_ppg"`
+}
+
+type playerJerseyStatsResp struct {
+	EditionName string   `json:"edition_name"`
+	ColorTags   []string `json:"color_tags"`
+	GamesPlayed int32    `json:"games_played"`
+	PPG         float64  `json:"ppg"`
+	RPG         float64  `json:"rpg"`
+	APG         float64  `json:"apg"`
+	FG3MPG      float64  `json:"fg3_mpg"`
+	FGPct       float64  `json:"fg_pct"`
+	FTPct       float64  `json:"ft_pct"`
+	PlusMinus   float64  `json:"plus_minus"`
+}
+
+type searchResultResp struct {
+	PlayerID   string `json:"player_id"`
+	PlayerName string `json:"player_name"`
+	TeamID     string `json:"team_id"`
+}
+
+type missingAssignmentResp struct {
+	GameID   string `json:"game_id"`
+	GameDate string `json:"game_date"`
+	HomeTeam string `json:"home_team"`
+	AwayTeam string `json:"away_team"`
+}
+
+// --- Handlers ---
+
 // ListTeams handles GET /api/v1/teams.
-// Returns all 30 NBA teams.
-func ListTeams() {
-	// TODO: query all teams, encode JSON response
+func ListTeams(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teams, err := q.ListTeams(r.Context())
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		out := make([]teamResp, len(teams))
+		for i, t := range teams {
+			out[i] = teamResp{ID: t.ID, Name: t.Name, City: t.City}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
 }
 
 // GetTeam handles GET /api/v1/teams/{teamID}.
-// Returns team detail with jersey editions.
-func GetTeam() {
-	// TODO: query team by ID, include jersey editions
+func GetTeam(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		team, err := q.GetTeam(r.Context(), teamID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, "team not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		editions, err := q.ListJerseyEditions(r.Context(), gen.ListJerseyEditionsParams{
+			TeamID: teamID,
+			Season: defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		jerseys := make([]jerseyResp, len(editions))
+		for i, e := range editions {
+			jerseys[i] = jerseyResp{
+				ID:          e.ID,
+				EditionName: e.EditionName,
+				ColorTags:   e.ColorTags,
+				Season:      e.Season,
+			}
+		}
+
+		writeJSON(w, http.StatusOK, teamDetailResp{
+			ID:      team.ID,
+			Name:    team.Name,
+			City:    team.City,
+			Jerseys: jerseys,
+		})
+	}
 }
 
 // GetTeamJerseyStats handles GET /api/v1/teams/{teamID}/jersey-stats.
-// Returns team stats aggregated by jersey edition (GP, W, L, Win%, PPG, etc.).
-func GetTeamJerseyStats() {
-	// TODO: join games + game_jersey_assignments + stats, group by edition
+func GetTeamJerseyStats(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		rows, err := q.GetTeamJerseyStats(r.Context(), gen.GetTeamJerseyStatsParams{
+			HomeTeam: teamID,
+			Season:   defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]teamJerseyStatsResp, len(rows))
+		for i, row := range rows {
+			out[i] = teamJerseyStatsResp{
+				EditionName: row.EditionName,
+				ColorTags:   row.ColorTags,
+				GamesPlayed: row.GamesPlayed,
+				Wins:        row.Wins,
+				Losses:      row.Losses,
+				PPG:         toFloat(row.Ppg),
+				OppPPG:      toFloat(row.OppPpg),
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
 }
 
 // GetPlayerJerseyStats handles GET /api/v1/players/{playerID}/jersey-stats.
-// Returns player stats aggregated by jersey edition.
-func GetPlayerJerseyStats() {
-	// TODO: join player_game_logs + game_jersey_assignments, group by edition
+func GetPlayerJerseyStats(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID := chi.URLParam(r, "playerID")
+
+		rows, err := q.GetPlayerJerseyStats(r.Context(), gen.GetPlayerJerseyStatsParams{
+			PlayerID: playerID,
+			Season:   defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]playerJerseyStatsResp, len(rows))
+		for i, row := range rows {
+			out[i] = playerJerseyStatsResp{
+				EditionName: row.EditionName,
+				ColorTags:   row.ColorTags,
+				GamesPlayed: row.GamesPlayed,
+				PPG:         toFloat(row.Ppg),
+				RPG:         toFloat(row.Rpg),
+				APG:         toFloat(row.Apg),
+				FG3MPG:      toFloat(row.Fg3Mpg),
+				FGPct:       float64(row.FgPct),
+				FTPct:       float64(row.FtPct),
+				PlusMinus:   toFloat(row.PlusMinus),
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
 }
 
 // SearchPlayers handles GET /api/v1/players/search?q=.
-// Returns matching players by name prefix.
-func SearchPlayers() {
-	// TODO: ILIKE query on player name
+func SearchPlayers(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("q")
+		if query == "" {
+			writeJSON(w, http.StatusOK, []searchResultResp{})
+			return
+		}
+
+		rows, err := q.SearchPlayers(r.Context(), pgtype.Text{String: query, Valid: true})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]searchResultResp, len(rows))
+		for i, row := range rows {
+			out[i] = searchResultResp{
+				PlayerID:   row.PlayerID,
+				PlayerName: row.PlayerName,
+				TeamID:     row.TeamID,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// MissingAssignments handles GET /admin/missing-assignments.
+func MissingAssignments(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rows, err := q.MissingAssignments(r.Context(), defaultSeason)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]missingAssignmentResp, len(rows))
+		for i, row := range rows {
+			out[i] = missingAssignmentResp{
+				GameID:   row.GameID,
+				GameDate: row.GameDate.Time.Format("2006-01-02"),
+				HomeTeam: row.HomeTeam,
+				AwayTeam: row.AwayTeam,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
 }
