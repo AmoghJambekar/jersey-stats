@@ -20,6 +20,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"jerseystats/internal/db/gen"
+	"jerseystats/internal/handler"
 )
 
 // NewRouter builds the chi router with all routes and middleware.
@@ -48,8 +51,22 @@ func NewRouter(pool *pgxpool.Pool) http.Handler {
 		w.Write([]byte("ok"))
 	})
 
-	// TODO: mount /api/v1 group (teams, players)
-	// TODO: mount /admin group (missing-assignments, import)
+	// Data queries
+	q := gen.New(pool)
+
+	// Public API
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/teams", handler.ListTeams(q))
+		r.Get("/teams/{teamID}", handler.GetTeam(q))
+		r.Get("/teams/{teamID}/jersey-stats", handler.GetTeamJerseyStats(q))
+		r.Get("/players/{playerID}/jersey-stats", handler.GetPlayerJerseyStats(q))
+		r.Get("/players/search", handler.SearchPlayers(q))
+	})
+
+	// Admin
+	r.Route("/admin", func(r chi.Router) {
+		r.Get("/missing-assignments", handler.MissingAssignments(q))
+	})
 
 	return r
 }
