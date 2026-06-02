@@ -10,6 +10,9 @@ services:
       - "5432:5432"
     volumes:
       - jerseystats_pg:/var/lib/postgresql/data
+      - ./backend/db/schema/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/db/seed/teams.sql:/docker-entrypoint-initdb.d/02-teams.sql
+      - ./backend/db/seed/jersey_editions.sql:/docker-entrypoint-initdb.d/03-jersey_editions.sql
 
 volumes:
   jerseystats_pg:
