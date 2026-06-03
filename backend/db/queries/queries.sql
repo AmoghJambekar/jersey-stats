@@ -111,3 +111,30 @@ FROM player_game_logs
 WHERE player_name ILIKE $1 || '%'
 ORDER BY player_name
 LIMIT 20;
+
+-- name: UpsertGame :exec
+-- Insert a game or update scores on re-ingestion.
+INSERT INTO games (game_id, game_date, home_team, away_team, home_score, away_score, season)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (game_id) DO UPDATE
+SET home_score = EXCLUDED.home_score,
+    away_score = EXCLUDED.away_score;
+
+-- name: UpsertPlayerGameLog :exec
+-- Insert or update a player's per-game stats.
+INSERT INTO player_game_logs (game_id, player_id, player_name, team_id, pts, reb, ast, fgm, fga, fg3m, fg3a, ftm, fta, min, plus_minus)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+ON CONFLICT (game_id, player_id) DO UPDATE
+SET player_name = EXCLUDED.player_name,
+    team_id     = EXCLUDED.team_id,
+    pts         = EXCLUDED.pts,
+    reb         = EXCLUDED.reb,
+    ast         = EXCLUDED.ast,
+    fgm         = EXCLUDED.fgm,
+    fga         = EXCLUDED.fga,
+    fg3m        = EXCLUDED.fg3m,
+    fg3a        = EXCLUDED.fg3a,
+    ftm         = EXCLUDED.ftm,
+    fta         = EXCLUDED.fta,
+    min         = EXCLUDED.min,
+    plus_minus  = EXCLUDED.plus_minus;
