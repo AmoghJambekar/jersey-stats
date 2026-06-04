@@ -1,24 +1,73 @@
 // Command ingest pulls NBA game and player stats into Postgres.
 //
 // Usage:
-//   go run ./cmd/ingest --season 2025-26
 //
-// Fetches completed games from the NBA Stats API (stats.nba.com) and
-// upserts them into the games / player_game_logs tables.
+//	go run ./cmd/ingest --season 2025-26
+//	go run ./cmd/ingest --season 2025-26 --team NYK --games-only
+//	go run ./cmd/ingest --season 2025-26 --players-only
+//
 // See docs/prd.md REQ-002 for requirements.
 package main
 
 import (
-	"fmt"
+	"context"
+	"flag"
+	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"jerseystats/internal/config"
+	"jerseystats/internal/db"
+	dbgen "jerseystats/internal/db/gen"
+	"jerseystats/internal/ingest"
+	"jerseystats/internal/nba"
 )
 
 func main() {
-	// TODO: parse --season flag
-	// TODO: load config, open DB pool
-	// TODO: create nba.Client with rate limiting (≤1 req/sec)
-	// TODO: fetch team game logs → upsert into games table
-	// TODO: fetch player game logs → upsert into player_game_logs table
+	season := flag.String("season", "2025-26", "NBA season (e.g. 2025-26)")
+	team := flag.String("team", "", "single team abbreviation (e.g. NYK); empty = all 30")
+	gamesOnly := flag.Bool("games-only", false, "only ingest games, skip player logs")
+	playersOnly := flag.Bool("players-only", false, "only ingest player logs, skip games")
+	flag.Parse()
 
-	fmt.Fprintln(os.Stderr, "ingest: not yet implemented")
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	cfg := config.Load()
+	if cfg.DatabaseURL == "" {
+		logger.Error("DATABASE_URL is required")
+		os.Exit(1)
+	}
+
+	pool, err := db.Connect(ctx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("db connect failed", "err", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	queries := dbgen.New(pool)
+	client := nba.NewClient(logger)
+	ing := ingest.New(client, queries, logger)
+
+	if !*playersOnly {
+		logger.Info("starting game ingestion", "season", *season, "team", *team)
+		if err := ing.IngestGames(ctx, *season, *team); err != nil {
+			logger.Error("game ingestion failed", "err", err)
+			os.Exit(1)
+		}
+	}
+
+	if !*gamesOnly {
+		logger.Info("starting player log ingestion", "season", *season, "team", *team)
+		if err := ing.IngestPlayerLogs(ctx, *season, *team); err != nil {
+			logger.Error("player log ingestion failed", "err", err)
+			os.Exit(1)
+		}
+	}
+
+	logger.Info("ingest complete")
 }
