@@ -3,7 +3,7 @@ version: "2"
 sql:
   - engine: "postgresql"
     schema:
-      - db/schema
+      - db/queries/schema
     queries:
       - db/queries
     gen:

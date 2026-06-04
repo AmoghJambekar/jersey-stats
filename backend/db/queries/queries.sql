@@ -138,3 +138,13 @@ SET player_name = EXCLUDED.player_name,
     fta         = EXCLUDED.fta,
     min         = EXCLUDED.min,
     plus_minus  = EXCLUDED.plus_minus;
+
+-- name: GetGameByDateAndTeams :one
+-- Look up a game_id by date and team matchup (used by CSV import).
+SELECT game_id FROM games
+WHERE game_date = $1 AND home_team = $2 AND away_team = $3;
+
+-- name: GetJerseyEditionID :one
+-- Look up a jersey edition's ID by team, name, and season.
+SELECT id FROM jersey_editions
+WHERE team_id = $1 AND edition_name = $2 AND season = $3;
