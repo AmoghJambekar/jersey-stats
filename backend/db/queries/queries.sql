@@ -106,9 +106,10 @@ ORDER BY games_played DESC;
 
 -- name: SearchPlayers :many
 -- Search players by name prefix (case-insensitive).
+-- Caller must append '%' to the search term.
 SELECT DISTINCT player_id, player_name, team_id
 FROM player_game_logs
-WHERE player_name ILIKE $1 || '%'
+WHERE player_name ILIKE $1
 ORDER BY player_name
 LIMIT 20;
 

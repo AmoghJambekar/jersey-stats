@@ -223,7 +223,7 @@ func SearchPlayers(q *gen.Queries) http.HandlerFunc {
 			return
 		}
 
-		rows, err := q.SearchPlayers(r.Context(), pgtype.Text{String: query, Valid: true})
+		rows, err := q.SearchPlayers(r.Context(), pgtype.Text{String: query + "%", Valid: true})
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
