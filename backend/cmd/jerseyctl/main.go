@@ -126,16 +126,14 @@ func runImport(ctx context.Context, q *dbgen.Queries, logger *slog.Logger, args 
 	reader := csv.NewReader(f)
 	reader.FieldsPerRecord = -1 // allow variable column count
 
-	// Skip first 2 junk rows + header row.
-	for i := 0; i < 3; i++ {
-		if _, err := reader.Read(); err != nil {
-			logger.Error("failed reading CSV header rows", "err", err)
-			os.Exit(1)
-		}
+	// Skip header row.
+	if _, err := reader.Read(); err != nil {
+		logger.Error("failed reading CSV header row", "err", err)
+		os.Exit(1)
 	}
 
 	var assigned, skipped, errored int
-	lineNum := 3
+	lineNum := 1
 
 	for {
 		row, err := reader.Read()

@@ -89,11 +89,11 @@ SELECT
   ROUND(AVG(pgl.fg3m), 1) AS fg3_mpg,
   CASE WHEN SUM(pgl.fga) > 0
     THEN ROUND(SUM(pgl.fgm)::NUMERIC / SUM(pgl.fga) * 100, 1)
-    ELSE 0
+    ELSE 0::NUMERIC
   END AS fg_pct,
   CASE WHEN SUM(pgl.fta) > 0
     THEN ROUND(SUM(pgl.ftm)::NUMERIC / SUM(pgl.fta) * 100, 1)
-    ELSE 0
+    ELSE 0::NUMERIC
   END AS ft_pct,
   ROUND(AVG(pgl.plus_minus), 1) AS plus_minus
 FROM player_game_logs pgl

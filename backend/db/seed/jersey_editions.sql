@@ -48,7 +48,8 @@ INSERT INTO jersey_editions (team_id, edition_name, color_tags, season) VALUES
   ('CLE', 'Icon', '{"wine","gold"}', '2025-26'),
   ('CLE', 'Association', '{"white","wine","gold"}', '2025-26'),
   ('CLE', 'Statement', '{"black","wine","gold"}', '2025-26'),
-  ('CLE', 'City', '{"orange","blue","tan"}', '2025-26')
+  ('CLE', 'City', '{"orange","blue","tan"}', '2025-26'),
+  ('CLE', 'Classic', '{"blue","orange","white"}', '2025-26')
 ON CONFLICT (team_id, edition_name, season) DO NOTHING;
 
 -- DAL Mavericks
@@ -56,7 +57,8 @@ INSERT INTO jersey_editions (team_id, edition_name, color_tags, season) VALUES
   ('DAL', 'Icon', '{"blue","white","silver"}', '2025-26'),
   ('DAL', 'Association', '{"white","blue","silver"}', '2025-26'),
   ('DAL', 'Statement', '{"navy","green"}', '2025-26'),
-  ('DAL', 'City', '{"green","blue","silver"}', '2025-26')
+  ('DAL', 'City', '{"green","blue","silver"}', '2025-26'),
+  ('DAL', 'Classic', '{"green","blue","gold"}', '2025-26')
 ON CONFLICT (team_id, edition_name, season) DO NOTHING;
 
 -- DEN Nuggets
@@ -145,7 +147,8 @@ INSERT INTO jersey_editions (team_id, edition_name, color_tags, season) VALUES
   ('MIN', 'Icon', '{"navy","green","white"}', '2025-26'),
   ('MIN', 'Association', '{"white","navy","green"}', '2025-26'),
   ('MIN', 'Statement', '{"black","green","navy"}', '2025-26'),
-  ('MIN', 'City', '{"purple"}', '2025-26')
+  ('MIN', 'City', '{"purple"}', '2025-26'),
+  ('MIN', 'Classic', '{"blue","green","white"}', '2025-26')
 ON CONFLICT (team_id, edition_name, season) DO NOTHING;
 
 -- NOP Pelicans
@@ -185,7 +188,8 @@ INSERT INTO jersey_editions (team_id, edition_name, color_tags, season) VALUES
   ('PHI', 'Icon', '{"blue","red","white"}', '2025-26'),
   ('PHI', 'Association', '{"white","blue","red"}', '2025-26'),
   ('PHI', 'Statement', '{"navy","red"}', '2025-26'),
-  ('PHI', 'City', '{"cream","blue","red"}', '2025-26')
+  ('PHI', 'City', '{"cream","blue","red"}', '2025-26'),
+  ('PHI', 'Classic', '{"red","white","blue"}', '2025-26')
 ON CONFLICT (team_id, edition_name, season) DO NOTHING;
 
 -- PHX Suns

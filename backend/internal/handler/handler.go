@@ -205,8 +205,8 @@ func GetPlayerJerseyStats(q *gen.Queries) http.HandlerFunc {
 				RPG:         toFloat(row.Rpg),
 				APG:         toFloat(row.Apg),
 				FG3MPG:      toFloat(row.Fg3Mpg),
-				FGPct:       float64(row.FgPct),
-				FTPct:       float64(row.FtPct),
+				FGPct:       toFloat(row.FgPct),
+				FTPct:       toFloat(row.FtPct),
 				PlusMinus:   toFloat(row.PlusMinus),
 			}
 		}

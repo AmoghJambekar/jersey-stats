@@ -9,6 +9,7 @@
 package nba
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -36,7 +37,10 @@ type Client struct {
 // NewClient creates an NBA Stats API client with rate limiting (1 req/sec).
 func NewClient(logger *slog.Logger) *Client {
 	return &Client{
-		http:    &http.Client{Timeout: 30 * time.Second},
+		http: &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: &http.Transport{DisableCompression: true},
+		},
 		limiter: rate.NewLimiter(rate.Limit(1), 1),
 		log:     logger,
 	}
@@ -108,17 +112,35 @@ func (c *Client) do(ctx context.Context, endpoint string, params url.Values) (*n
 		if err != nil {
 			return nil, fmt.Errorf("build request: %w", err)
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-		req.Header.Set("Referer", "https://www.nba.com/")
-		req.Header.Set("Origin", "https://www.nba.com")
+		req.Header.Set("Host", "stats.nba.com")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36")
 		req.Header.Set("Accept", "application/json, text/plain, */*")
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+		req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+		req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+		req.Header.Set("Connection", "keep-alive")
+		req.Header.Set("Referer", "https://www.nba.com/")
+		req.Header.Set("Pragma", "no-cache")
+		req.Header.Set("Cache-Control", "no-cache")
+		req.Header.Set("Sec-Ch-Ua", `"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"`)
+		req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+		req.Header.Set("Sec-Fetch-Dest", "empty")
 
 		resp, err := c.http.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("http %s: %w", endpoint, err)
 		}
-		body, err := io.ReadAll(resp.Body)
+
+		var reader io.ReadCloser = resp.Body
+		if resp.Header.Get("Content-Encoding") == "gzip" {
+			gr, gzErr := gzip.NewReader(resp.Body)
+			if gzErr != nil {
+				resp.Body.Close()
+				return nil, fmt.Errorf("gzip %s: %w", endpoint, gzErr)
+			}
+			reader = gr
+		}
+		body, err := io.ReadAll(reader)
+		reader.Close()
 		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("read body %s: %w", endpoint, err)
