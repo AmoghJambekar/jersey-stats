@@ -261,11 +261,11 @@ func ParseGameDate(raw string) string {
 // --- API methods ---
 
 // GetTeamGameLog fetches all games for a team in a season.
-func (c *Client) GetTeamGameLog(ctx context.Context, nbaTeamID int, season string) ([]GameLogEntry, error) {
+func (c *Client) GetTeamGameLog(ctx context.Context, nbaTeamID int, season, seasonType string) ([]GameLogEntry, error) {
 	resp, err := c.do(ctx, "teamgamelog", url.Values{
 		"TeamID":     {strconv.Itoa(nbaTeamID)},
 		"Season":     {season},
-		"SeasonType": {"Regular Season"},
+		"SeasonType": {seasonType},
 	})
 	if err != nil {
 		return nil, err
@@ -290,11 +290,11 @@ func (c *Client) GetTeamGameLog(ctx context.Context, nbaTeamID int, season strin
 }
 
 // GetPlayerGameLog fetches per-game stats for a player in a season.
-func (c *Client) GetPlayerGameLog(ctx context.Context, playerID int, season string) ([]PlayerGameLogEntry, error) {
+func (c *Client) GetPlayerGameLog(ctx context.Context, playerID int, season, seasonType string) ([]PlayerGameLogEntry, error) {
 	resp, err := c.do(ctx, "playergamelog", url.Values{
 		"PlayerID":   {strconv.Itoa(playerID)},
 		"Season":     {season},
-		"SeasonType": {"Regular Season"},
+		"SeasonType": {seasonType},
 	})
 	if err != nil {
 		return nil, err

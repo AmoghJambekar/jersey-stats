@@ -24,9 +24,10 @@ CREATE TABLE games (
   game_date  DATE NOT NULL,
   home_team  TEXT NOT NULL REFERENCES teams(id),
   away_team  TEXT NOT NULL REFERENCES teams(id),
-  home_score INT,                       -- NULL until game is played
-  away_score INT,
-  season     TEXT NOT NULL DEFAULT '2025-26'
+  home_score   INT,                       -- NULL until game is played
+  away_score   INT,
+  season       TEXT NOT NULL DEFAULT '2025-26',
+  season_type  TEXT NOT NULL DEFAULT 'Regular Season'
 );
 
 CREATE TABLE game_jersey_assignments (

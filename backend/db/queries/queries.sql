@@ -14,7 +14,7 @@ WHERE team_id = $1 AND season = $2
 ORDER BY edition_name;
 
 -- name: GetGamesByTeamAndSeason :many
-SELECT game_id, game_date, home_team, away_team, home_score, away_score, season
+SELECT game_id, game_date, home_team, away_team, home_score, away_score, season, season_type
 FROM games
 WHERE (home_team = $1 OR away_team = $1) AND season = $2
 ORDER BY game_date;
@@ -37,7 +37,7 @@ SET jersey_id = EXCLUDED.jersey_id,
 
 -- name: MissingAssignments :many
 -- Games where at least one team has no jersey assignment.
-SELECT g.game_id, g.game_date, g.home_team, g.away_team
+SELECT g.game_id, g.game_date, g.home_team, g.away_team, g.season_type
 FROM games g
 WHERE g.season = $1
   AND (
@@ -115,11 +115,12 @@ LIMIT 20;
 
 -- name: UpsertGame :exec
 -- Insert a game or update scores on re-ingestion.
-INSERT INTO games (game_id, game_date, home_team, away_team, home_score, away_score, season)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO games (game_id, game_date, home_team, away_team, home_score, away_score, season, season_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (game_id) DO UPDATE
-SET home_score = EXCLUDED.home_score,
-    away_score = EXCLUDED.away_score;
+SET home_score   = EXCLUDED.home_score,
+    away_score   = EXCLUDED.away_score,
+    season_type  = EXCLUDED.season_type;
 
 -- name: UpsertPlayerGameLog :exec
 -- Insert or update a player's per-game stats.
