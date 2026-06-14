@@ -237,8 +237,8 @@ func runMissing(ctx context.Context, q *dbgen.Queries, logger *slog.Logger, args
 		os.Exit(1)
 	}
 
-	fmt.Printf("%-12s %-6s %-6s\n", "DATE", "HOME", "AWAY")
-	fmt.Println(strings.Repeat("-", 26))
+	fmt.Printf("%-12s %-6s %-6s %-16s\n", "DATE", "HOME", "AWAY", "TYPE")
+	fmt.Println(strings.Repeat("-", 42))
 
 	count := 0
 	for _, r := range rows {
@@ -246,7 +246,7 @@ func runMissing(ctx context.Context, q *dbgen.Queries, logger *slog.Logger, args
 			continue
 		}
 		date := r.GameDate.Time.Format("2006-01-02")
-		fmt.Printf("%-12s %-6s %-6s\n", date, r.HomeTeam, r.AwayTeam)
+		fmt.Printf("%-12s %-6s %-6s %-16s\n", date, r.HomeTeam, r.AwayTeam, r.SeasonType)
 		count++
 	}
 

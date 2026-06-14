@@ -26,11 +26,12 @@ type JerseyEdition struct {
 
 // Game represents a single NBA game.
 type Game struct {
-	GameID   string    `json:"game_id"`
-	GameDate time.Time `json:"game_date"`
-	HomeTeam string    `json:"home_team"`
-	AwayTeam string    `json:"away_team"`
-	Season   string    `json:"season"`
+	GameID     string    `json:"game_id"`
+	GameDate   time.Time `json:"game_date"`
+	HomeTeam   string    `json:"home_team"`
+	AwayTeam   string    `json:"away_team"`
+	Season     string    `json:"season"`
+	SeasonType string    `json:"season_type"` // "Regular Season" or "Playoffs"
 }
 
 // GameJerseyAssignment maps a team to the jersey they wore in a specific game.

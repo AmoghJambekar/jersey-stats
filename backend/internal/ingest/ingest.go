@@ -14,6 +14,9 @@ import (
 	"jerseystats/internal/nba"
 )
 
+// DefaultSeasonTypes are the season types ingested by default.
+var DefaultSeasonTypes = []string{"Regular Season", "Playoffs"}
+
 // Ingester coordinates NBA API calls and database writes.
 type Ingester struct {
 	nba     *nba.Client
@@ -29,19 +32,21 @@ func New(nbaClient *nba.Client, queries *gen.Queries, logger *slog.Logger) *Inge
 // gamePair collects both sides of a game from two teams' game logs
 // so we can populate home_score and away_score.
 type gamePair struct {
-	gameID   string
-	gameDate time.Time
-	homeTeam string
-	awayTeam string
-	homePTS  int
-	awayPTS  int
-	hasHome  bool
-	hasAway  bool
+	gameID     string
+	gameDate   time.Time
+	homeTeam   string
+	awayTeam   string
+	homePTS    int
+	awayPTS    int
+	hasHome    bool
+	hasAway    bool
+	seasonType string
 }
 
 // IngestGames fetches team game logs and upserts into the games table.
 // If teamFilter is non-empty, only that team's games are fetched.
-func (ing *Ingester) IngestGames(ctx context.Context, season, teamFilter string) error {
+// seasonTypes controls which NBA season types to fetch (e.g. "Regular Season", "Playoffs").
+func (ing *Ingester) IngestGames(ctx context.Context, season, teamFilter string, seasonTypes []string) error {
 	teamIDs := nba.AllNBATeamIDs()
 	if teamFilter != "" {
 		id, ok := nba.AbbrToNBAID[teamFilter]
@@ -54,45 +59,49 @@ func (ing *Ingester) IngestGames(ctx context.Context, season, teamFilter string)
 	games := make(map[string]*gamePair)
 	var failed []string
 
-	for _, nbaID := range teamIDs {
-		abbr := nba.NBAIDToAbbr[nbaID]
-		ing.log.Info("fetching team game log", "team", abbr)
+	for _, seasonType := range seasonTypes {
+		ing.log.Info("fetching games", "season_type", seasonType)
 
-		entries, err := ing.nba.GetTeamGameLog(ctx, nbaID, season)
-		if err != nil {
-			ing.log.Error("failed to fetch team game log", "team", abbr, "err", err)
-			failed = append(failed, abbr)
-			continue
+		for _, nbaID := range teamIDs {
+			abbr := nba.NBAIDToAbbr[nbaID]
+			ing.log.Info("fetching team game log", "team", abbr, "season_type", seasonType)
+
+			entries, err := ing.nba.GetTeamGameLog(ctx, nbaID, season, seasonType)
+			if err != nil {
+				ing.log.Error("failed to fetch team game log", "team", abbr, "season_type", seasonType, "err", err)
+				failed = append(failed, abbr)
+				continue
+			}
+
+			for _, e := range entries {
+				team, opponent, isHome := nba.ParseMatchup(e.Matchup)
+				if team == "" {
+					team = abbr
+				}
+
+				gp, exists := games[e.GameID]
+				if !exists {
+					dateStr := nba.ParseGameDate(e.GameDate)
+					t, _ := time.Parse("2006-01-02", dateStr)
+					gp = &gamePair{gameID: e.GameID, gameDate: t, seasonType: seasonType}
+					games[e.GameID] = gp
+				}
+
+				if isHome {
+					gp.homeTeam = team
+					gp.awayTeam = opponent
+					gp.homePTS = e.PTS
+					gp.hasHome = true
+				} else {
+					gp.awayTeam = team
+					gp.homeTeam = opponent
+					gp.awayPTS = e.PTS
+					gp.hasAway = true
+				}
+			}
+
+			ing.log.Info("fetched team game log", "team", abbr, "season_type", seasonType, "games", len(entries))
 		}
-
-		for _, e := range entries {
-			team, opponent, isHome := nba.ParseMatchup(e.Matchup)
-			if team == "" {
-				team = abbr
-			}
-
-			gp, exists := games[e.GameID]
-			if !exists {
-				dateStr := nba.ParseGameDate(e.GameDate)
-				t, _ := time.Parse("2006-01-02", dateStr)
-				gp = &gamePair{gameID: e.GameID, gameDate: t}
-				games[e.GameID] = gp
-			}
-
-			if isHome {
-				gp.homeTeam = team
-				gp.awayTeam = opponent
-				gp.homePTS = e.PTS
-				gp.hasHome = true
-			} else {
-				gp.awayTeam = team
-				gp.homeTeam = opponent
-				gp.awayPTS = e.PTS
-				gp.hasAway = true
-			}
-		}
-
-		ing.log.Info("fetched team game log", "team", abbr, "games", len(entries))
 	}
 
 	// Upsert all paired games into Postgres.
@@ -108,13 +117,14 @@ func (ing *Ingester) IngestGames(ctx context.Context, season, teamFilter string)
 		}
 
 		err := ing.queries.UpsertGame(ctx, gen.UpsertGameParams{
-			GameID:    gp.gameID,
-			GameDate:  pgtype.Date{Time: gp.gameDate, Valid: !gp.gameDate.IsZero()},
-			HomeTeam:  gp.homeTeam,
-			AwayTeam:  gp.awayTeam,
-			HomeScore: homeScore,
-			AwayScore: awayScore,
-			Season:    season,
+			GameID:     gp.gameID,
+			GameDate:   pgtype.Date{Time: gp.gameDate, Valid: !gp.gameDate.IsZero()},
+			HomeTeam:   gp.homeTeam,
+			AwayTeam:   gp.awayTeam,
+			HomeScore:  homeScore,
+			AwayScore:  awayScore,
+			Season:     season,
+			SeasonType: gp.seasonType,
 		})
 		if err != nil {
 			ing.log.Error("failed to upsert game", "game_id", gp.gameID, "err", err)
@@ -136,7 +146,8 @@ func (ing *Ingester) IngestGames(ctx context.Context, season, teamFilter string)
 
 // IngestPlayerLogs fetches player game logs and upserts into player_game_logs.
 // If teamFilter is non-empty, only players on that team are fetched.
-func (ing *Ingester) IngestPlayerLogs(ctx context.Context, season, teamFilter string) error {
+// seasonTypes controls which NBA season types to fetch (e.g. "Regular Season", "Playoffs").
+func (ing *Ingester) IngestPlayerLogs(ctx context.Context, season, teamFilter string, seasonTypes []string) error {
 	ing.log.Info("fetching active player list")
 	players, err := ing.nba.GetAllPlayers(ctx, season)
 	if err != nil {
@@ -158,43 +169,46 @@ func (ing *Ingester) IngestPlayerLogs(ctx context.Context, season, teamFilter st
 	upserted := 0
 	failed := 0
 	for i, p := range players {
-		entries, err := ing.nba.GetPlayerGameLog(ctx, p.PlayerID, season)
-		if err != nil {
-			ing.log.Error("failed to fetch player game log",
-				"player", p.Name, "player_id", p.PlayerID, "err", err)
-			failed++
-			continue
-		}
-
-		for _, e := range entries {
-			teamAbbr := e.TeamAbbr
-			if teamAbbr == "" {
-				teamAbbr = p.TeamAbbr
-			}
-
-			err := ing.queries.UpsertPlayerGameLog(ctx, gen.UpsertPlayerGameLogParams{
-				GameID:     e.GameID,
-				PlayerID:   strconv.Itoa(p.PlayerID),
-				PlayerName: p.Name,
-				TeamID:     teamAbbr,
-				Pts:        pgInt4(e.PTS),
-				Reb:        pgInt4(e.REB),
-				Ast:        pgInt4(e.AST),
-				Fgm:        pgInt4(e.FGM),
-				Fga:        pgInt4(e.FGA),
-				Fg3m:       pgInt4(e.FG3M),
-				Fg3a:       pgInt4(e.FG3A),
-				Ftm:        pgInt4(e.FTM),
-				Fta:        pgInt4(e.FTA),
-				Min:        pgNumeric(e.MIN),
-				PlusMinus:  pgNumeric(e.PlusMinus),
-			})
+		for _, seasonType := range seasonTypes {
+			entries, err := ing.nba.GetPlayerGameLog(ctx, p.PlayerID, season, seasonType)
 			if err != nil {
-				ing.log.Error("failed to upsert player game log",
-					"player", p.Name, "game_id", e.GameID, "err", err)
+				ing.log.Error("failed to fetch player game log",
+					"player", p.Name, "player_id", p.PlayerID,
+					"season_type", seasonType, "err", err)
+				failed++
 				continue
 			}
-			upserted++
+
+			for _, e := range entries {
+				teamAbbr := e.TeamAbbr
+				if teamAbbr == "" {
+					teamAbbr = p.TeamAbbr
+				}
+
+				err := ing.queries.UpsertPlayerGameLog(ctx, gen.UpsertPlayerGameLogParams{
+					GameID:     e.GameID,
+					PlayerID:   strconv.Itoa(p.PlayerID),
+					PlayerName: p.Name,
+					TeamID:     teamAbbr,
+					Pts:        pgInt4(e.PTS),
+					Reb:        pgInt4(e.REB),
+					Ast:        pgInt4(e.AST),
+					Fgm:        pgInt4(e.FGM),
+					Fga:        pgInt4(e.FGA),
+					Fg3m:       pgInt4(e.FG3M),
+					Fg3a:       pgInt4(e.FG3A),
+					Ftm:        pgInt4(e.FTM),
+					Fta:        pgInt4(e.FTA),
+					Min:        pgNumeric(e.MIN),
+					PlusMinus:  pgNumeric(e.PlusMinus),
+				})
+				if err != nil {
+					ing.log.Error("failed to upsert player game log",
+						"player", p.Name, "game_id", e.GameID, "err", err)
+					continue
+				}
+				upserted++
+			}
 		}
 
 		if (i+1)%50 == 0 || i+1 == len(players) {

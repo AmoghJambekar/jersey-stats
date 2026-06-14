@@ -84,10 +84,11 @@ type searchResultResp struct {
 }
 
 type missingAssignmentResp struct {
-	GameID   string `json:"game_id"`
-	GameDate string `json:"game_date"`
-	HomeTeam string `json:"home_team"`
-	AwayTeam string `json:"away_team"`
+	GameID     string `json:"game_id"`
+	GameDate   string `json:"game_date"`
+	HomeTeam   string `json:"home_team"`
+	AwayTeam   string `json:"away_team"`
+	SeasonType string `json:"season_type"`
 }
 
 // --- Handlers ---
@@ -223,7 +224,7 @@ func SearchPlayers(q *gen.Queries) http.HandlerFunc {
 			return
 		}
 
-		rows, err := q.SearchPlayers(r.Context(), pgtype.Text{String: query + "%", Valid: true})
+		rows, err := q.SearchPlayers(r.Context(), query+"%")
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -253,10 +254,11 @@ func MissingAssignments(q *gen.Queries) http.HandlerFunc {
 		out := make([]missingAssignmentResp, len(rows))
 		for i, row := range rows {
 			out[i] = missingAssignmentResp{
-				GameID:   row.GameID,
-				GameDate: row.GameDate.Time.Format("2006-01-02"),
-				HomeTeam: row.HomeTeam,
-				AwayTeam: row.AwayTeam,
+				GameID:     row.GameID,
+				GameDate:   row.GameDate.Time.Format("2006-01-02"),
+				HomeTeam:   row.HomeTeam,
+				AwayTeam:   row.AwayTeam,
+				SeasonType: row.SeasonType,
 			}
 		}
 		writeJSON(w, http.StatusOK, out)

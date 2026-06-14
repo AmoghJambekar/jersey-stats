@@ -3,6 +3,7 @@
 // Usage:
 //
 //	go run ./cmd/ingest --season 2025-26
+//	go run ./cmd/ingest --season 2025-26 --season-type Playoffs
 //	go run ./cmd/ingest --season 2025-26 --team NYK --games-only
 //	go run ./cmd/ingest --season 2025-26 --players-only
 //
@@ -27,11 +28,24 @@ import (
 func main() {
 	season := flag.String("season", "2025-26", "NBA season (e.g. 2025-26)")
 	team := flag.String("team", "", "single team abbreviation (e.g. NYK); empty = all 30")
+	seasonType := flag.String("season-type", "", `season type: "Regular Season", "Playoffs", or empty for both`)
 	gamesOnly := flag.Bool("games-only", false, "only ingest games, skip player logs")
 	playersOnly := flag.Bool("players-only", false, "only ingest player logs, skip games")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	// Resolve season types to ingest.
+	var seasonTypes []string
+	switch *seasonType {
+	case "":
+		seasonTypes = ingest.DefaultSeasonTypes
+	case "Regular Season", "Playoffs":
+		seasonTypes = []string{*seasonType}
+	default:
+		logger.Error("invalid --season-type; must be \"Regular Season\" or \"Playoffs\"")
+		os.Exit(1)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -54,16 +68,16 @@ func main() {
 	ing := ingest.New(client, queries, logger)
 
 	if !*playersOnly {
-		logger.Info("starting game ingestion", "season", *season, "team", *team)
-		if err := ing.IngestGames(ctx, *season, *team); err != nil {
+		logger.Info("starting game ingestion", "season", *season, "team", *team, "season_types", seasonTypes)
+		if err := ing.IngestGames(ctx, *season, *team, seasonTypes); err != nil {
 			logger.Error("game ingestion failed", "err", err)
 			os.Exit(1)
 		}
 	}
 
 	if !*gamesOnly {
-		logger.Info("starting player log ingestion", "season", *season, "team", *team)
-		if err := ing.IngestPlayerLogs(ctx, *season, *team); err != nil {
+		logger.Info("starting player log ingestion", "season", *season, "team", *team, "season_types", seasonTypes)
+		if err := ing.IngestPlayerLogs(ctx, *season, *team, seasonTypes); err != nil {
 			logger.Error("player log ingestion failed", "err", err)
 			os.Exit(1)
 		}
