@@ -1,8 +1,8 @@
 # JerseyStats — local tasks (see docs/prd.md)
-.PHONY: help db-up db-down run-api sqlc ingest-games
+.PHONY: help db-up db-down run-api run-frontend build-frontend sqlc ingest-games
 
 help:
-	@echo "Targets: db-up db-down run-api sqlc ingest-games"
+	@echo "Targets: db-up db-down run-api run-frontend build-frontend sqlc ingest-games"
 
 db-up:
 	docker compose up -d postgres
@@ -15,6 +15,12 @@ run-api:
 
 sqlc:
 	cd backend && sqlc generate
+
+run-frontend:
+	cd frontend && npm run dev
+
+build-frontend:
+	cd frontend && npm run build
 
 ingest-games:
 	python backend/scripts/fetch_regular_season_games.py --season 2024-25
