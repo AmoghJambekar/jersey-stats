@@ -91,6 +91,12 @@ type missingAssignmentResp struct {
 	SeasonType string `json:"season_type"`
 }
 
+type rosterPlayerResp struct {
+	PlayerID   string `json:"player_id"`
+	PlayerName string `json:"player_name"`
+	TeamID     string `json:"team_id"`
+}
+
 // --- Handlers ---
 
 // ListTeams handles GET /api/v1/teams.
@@ -149,6 +155,29 @@ func GetTeam(q *gen.Queries) http.HandlerFunc {
 			City:    team.City,
 			Jerseys: jerseys,
 		})
+	}
+}
+
+// GetTeamRoster handles GET /api/v1/teams/{teamID}/roster.
+func GetTeamRoster(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		rows, err := q.GetTeamRoster(r.Context(), teamID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]rosterPlayerResp, len(rows))
+		for i, row := range rows {
+			out[i] = rosterPlayerResp{
+				PlayerID:   row.PlayerID,
+				PlayerName: row.PlayerName,
+				TeamID:     row.TeamID,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 

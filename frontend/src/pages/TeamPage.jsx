@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchTeam, fetchTeamJerseyStats } from '../api';
+import { fetchTeam, fetchTeamJerseyStats, fetchTeamRoster } from '../api';
 import StatsTable from '../components/StatsTable';
 
 const columns = [
@@ -17,16 +17,18 @@ export default function TeamPage() {
   const { teamId } = useParams();
   const [team, setTeam] = useState(null);
   const [stats, setStats] = useState([]);
+  const [roster, setRoster] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchTeam(teamId), fetchTeamJerseyStats(teamId)])
-      .then(([teamData, statsData]) => {
+    Promise.all([fetchTeam(teamId), fetchTeamJerseyStats(teamId), fetchTeamRoster(teamId)])
+      .then(([teamData, statsData, rosterData]) => {
         if (!cancelled) {
           setTeam(teamData);
           setStats(statsData);
+          setRoster(rosterData);
         }
       })
       .catch((e) => { if (!cancelled) setError(e.message); })
@@ -45,6 +47,24 @@ export default function TeamPage() {
       </h1>
       <h2 className="text-lg text-gray-600 mb-6">Jersey Stats &mdash; 2025-26</h2>
       <StatsTable columns={columns} rows={stats} />
+
+      {roster.length > 0 && (
+        <>
+          <h2 className="text-lg text-gray-600 mt-8 mb-4">Roster</h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {roster.map((p) => (
+              <li key={p.player_id}>
+                <Link
+                  to={`/players/${p.player_id}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {p.player_name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

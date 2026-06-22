@@ -18,6 +18,12 @@ export async function fetchTeamJerseyStats(teamId) {
   return res.json();
 }
 
+export async function fetchTeamRoster(teamId) {
+  const res = await fetch(`${BASE}/teams/${teamId}/roster`);
+  if (!res.ok) throw new Error(`Failed to fetch team roster: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchPlayerJerseyStats(playerId) {
   const res = await fetch(`${BASE}/players/${playerId}/jersey-stats`);
   if (!res.ok) throw new Error(`Failed to fetch player jersey stats: ${res.status}`);
