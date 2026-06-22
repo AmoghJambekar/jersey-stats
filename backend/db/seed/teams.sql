@@ -14,7 +14,7 @@ INSERT INTO teams (id, name, city) VALUES
   ('GSW', 'Golden State Warriors', 'Golden State'),
   ('HOU', 'Houston Rockets', 'Houston'),
   ('IND', 'Indiana Pacers', 'Indiana'),
-  ('LAC', 'LA Clippers', 'Los Angeles'),
+  ('LAC', 'Los Angeles Clippers', 'Los Angeles'),
   ('LAL', 'Los Angeles Lakers', 'Los Angeles'),
   ('MEM', 'Memphis Grizzlies', 'Memphis'),
   ('MIA', 'Miami Heat', 'Miami'),
