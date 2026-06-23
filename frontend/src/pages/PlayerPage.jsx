@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { fetchPlayerJerseyStats } from '../api';
+import { fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
 
 const columns = [
@@ -16,6 +16,22 @@ const columns = [
   { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + v?.toFixed(1) },
 ];
 
+const gameLogColumns = [
+  { key: 'game_date', label: 'Date' },
+  { key: 'home_team', label: 'Home' },
+  { key: 'away_team', label: 'Away' },
+  { key: 'home_jersey', label: 'Home Jersey' },
+  { key: 'away_jersey', label: 'Away Jersey' },
+  { key: 'pts', label: 'PTS' },
+  { key: 'reb', label: 'REB' },
+  { key: 'ast', label: 'AST' },
+  { key: 'fg', label: 'FGM/FGA', format: (_, row) => `${row.fgm}/${row.fga}` },
+  { key: 'fg3', label: 'FG3M/FG3A', format: (_, row) => `${row.fg3m}/${row.fg3a}` },
+  { key: 'ft', label: 'FTM/FTA', format: (_, row) => `${row.ftm}/${row.fta}` },
+  { key: 'min', label: 'MIN', format: (v) => v?.toFixed(1) },
+  { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + v?.toFixed(1) },
+];
+
 export default function PlayerPage() {
   const { playerId } = useParams();
   const location = useLocation();
@@ -23,13 +39,19 @@ export default function PlayerPage() {
   const teamId = location.state?.teamId;
 
   const [stats, setStats] = useState([]);
+  const [gameLog, setGameLog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetchPlayerJerseyStats(playerId)
-      .then((data) => { if (!cancelled) setStats(data); })
+    Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId)])
+      .then(([statsData, gameLogData]) => {
+        if (!cancelled) {
+          setStats(statsData);
+          setGameLog(gameLogData);
+        }
+      })
       .catch((e) => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -47,6 +69,13 @@ export default function PlayerPage() {
       {teamId && <p className="text-gray-500 mb-6">{teamId}</p>}
       <h2 className="text-lg text-gray-600 mb-6">Jersey Stats &mdash; 2025-26</h2>
       <StatsTable columns={columns} rows={stats} />
+
+      {gameLog.length > 0 && (
+        <>
+          <h2 className="text-lg text-gray-600 mt-8 mb-4">Game Log</h2>
+          <StatsTable columns={gameLogColumns} rows={gameLog} />
+        </>
+      )}
     </div>
   );
 }

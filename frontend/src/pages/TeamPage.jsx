@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchTeam, fetchTeamJerseyStats, fetchTeamRoster } from '../api';
+import { fetchTeam, fetchTeamJerseyStats, fetchTeamRoster, fetchTeamGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
 
 const columns = [
@@ -13,22 +13,41 @@ const columns = [
   { key: 'opp_ppg', label: 'Opp PPG', format: (v) => v?.toFixed(1) },
 ];
 
+const fmtLeader = (l) => l ? `${l.name} (${l.value})` : '';
+
+const gameLogColumns = [
+  { key: 'game_date', label: 'Date' },
+  { key: 'away_team', label: 'Away' },
+  { key: 'home_team', label: 'Home' },
+  { key: 'away_jersey', label: 'Away Jersey' },
+  { key: 'home_jersey', label: 'Home Jersey' },
+  { key: 'score', label: 'Score', format: (_, row) => `${row.away_score} - ${row.home_score}` },
+  { key: 'away_pts_leader', label: 'Away PTS', format: (v) => fmtLeader(v) },
+  { key: 'away_reb_leader', label: 'Away REB', format: (v) => fmtLeader(v) },
+  { key: 'away_ast_leader', label: 'Away AST', format: (v) => fmtLeader(v) },
+  { key: 'home_pts_leader', label: 'Home PTS', format: (v) => fmtLeader(v) },
+  { key: 'home_reb_leader', label: 'Home REB', format: (v) => fmtLeader(v) },
+  { key: 'home_ast_leader', label: 'Home AST', format: (v) => fmtLeader(v) },
+];
+
 export default function TeamPage() {
   const { teamId } = useParams();
   const [team, setTeam] = useState(null);
   const [stats, setStats] = useState([]);
   const [roster, setRoster] = useState([]);
+  const [gameLog, setGameLog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchTeam(teamId), fetchTeamJerseyStats(teamId), fetchTeamRoster(teamId)])
-      .then(([teamData, statsData, rosterData]) => {
+    Promise.all([fetchTeam(teamId), fetchTeamJerseyStats(teamId), fetchTeamRoster(teamId), fetchTeamGameLog(teamId)])
+      .then(([teamData, statsData, rosterData, gameLogData]) => {
         if (!cancelled) {
           setTeam(teamData);
           setStats(statsData);
           setRoster(rosterData);
+          setGameLog(gameLogData);
         }
       })
       .catch((e) => { if (!cancelled) setError(e.message); })
@@ -63,6 +82,13 @@ export default function TeamPage() {
               </li>
             ))}
           </ul>
+        </>
+      )}
+
+      {gameLog.length > 0 && (
+        <>
+          <h2 className="text-lg text-gray-600 mt-8 mb-4">Game Log</h2>
+          <StatsTable columns={gameLogColumns} rows={gameLog} />
         </>
       )}
     </div>

@@ -35,3 +35,15 @@ export async function searchPlayers(query) {
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchTeamGameLog(teamId) {
+  const res = await fetch(`${BASE}/teams/${teamId}/game-log`);
+  if (!res.ok) throw new Error(`Failed to fetch team game log: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchPlayerGameLog(playerId) {
+  const res = await fetch(`${BASE}/players/${playerId}/game-log`);
+  if (!res.ok) throw new Error(`Failed to fetch player game log: ${res.status}`);
+  return res.json();
+}

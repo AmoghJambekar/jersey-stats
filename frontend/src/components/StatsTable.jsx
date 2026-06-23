@@ -25,7 +25,7 @@ export default function StatsTable({ columns, rows }) {
                   {col.key === 'color_tags' ? (
                     <ColorDots colors={row[col.key]} />
                   ) : col.format ? (
-                    col.format(row[col.key])
+                    col.format(row[col.key], row)
                   ) : (
                     row[col.key]
                   )}

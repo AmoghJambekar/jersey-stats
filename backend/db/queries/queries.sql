@@ -156,3 +156,38 @@ WHERE game_date = $1 AND home_team = $2 AND away_team = $3;
 -- Look up a jersey edition's ID by team, name, and season.
 SELECT id FROM jersey_editions
 WHERE team_id = $1 AND edition_name = $2 AND season = $3;
+
+-- name: GetTeamGameLog :many
+SELECT g.game_id, g.game_date, g.home_team, g.away_team, g.home_score, g.away_score, g.season_type,
+       hje.edition_name AS home_jersey, aje.edition_name AS away_jersey
+FROM games g
+LEFT JOIN game_jersey_assignments hgja ON hgja.game_id = g.game_id AND hgja.team_id = g.home_team
+LEFT JOIN jersey_editions hje ON hje.id = hgja.jersey_id
+LEFT JOIN game_jersey_assignments agja ON agja.game_id = g.game_id AND agja.team_id = g.away_team
+LEFT JOIN jersey_editions aje ON aje.id = agja.jersey_id
+WHERE (g.home_team = $1 OR g.away_team = $1) AND g.season = $2
+  AND g.home_score IS NOT NULL
+ORDER BY g.game_date DESC;
+
+-- name: GetPlayerGameLogsForTeam :many
+SELECT pgl.game_id, pgl.player_name, pgl.team_id, pgl.pts, pgl.reb, pgl.ast
+FROM player_game_logs pgl
+JOIN games g ON g.game_id = pgl.game_id
+WHERE (g.home_team = $1 OR g.away_team = $1) AND g.season = $2
+  AND g.home_score IS NOT NULL
+ORDER BY pgl.game_id;
+
+-- name: GetPlayerGameLog :many
+SELECT g.game_date, g.home_team, g.away_team, g.home_score, g.away_score,
+       hje.edition_name AS home_jersey, aje.edition_name AS away_jersey,
+       pgl.pts, pgl.reb, pgl.ast, pgl.fgm, pgl.fga, pgl.fg3m, pgl.fg3a,
+       pgl.ftm, pgl.fta, pgl.min, pgl.plus_minus
+FROM player_game_logs pgl
+JOIN games g ON g.game_id = pgl.game_id
+LEFT JOIN game_jersey_assignments hgja ON hgja.game_id = g.game_id AND hgja.team_id = g.home_team
+LEFT JOIN jersey_editions hje ON hje.id = hgja.jersey_id
+LEFT JOIN game_jersey_assignments agja ON agja.game_id = g.game_id AND agja.team_id = g.away_team
+LEFT JOIN jersey_editions aje ON aje.id = agja.jersey_id
+WHERE pgl.player_id = $1 AND g.season = $2
+  AND g.home_score IS NOT NULL
+ORDER BY g.game_date DESC;

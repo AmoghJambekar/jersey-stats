@@ -32,6 +32,20 @@ func toFloat(n pgtype.Numeric) float64 {
 	return v.Float64
 }
 
+func toInt(n pgtype.Int4) int {
+	if !n.Valid {
+		return 0
+	}
+	return int(n.Int32)
+}
+
+func toText(t pgtype.Text) string {
+	if !t.Valid {
+		return ""
+	}
+	return t.String
+}
+
 // --- Response types ---
 
 type teamResp struct {
@@ -95,6 +109,50 @@ type rosterPlayerResp struct {
 	PlayerID   string `json:"player_id"`
 	PlayerName string `json:"player_name"`
 	TeamID     string `json:"team_id"`
+}
+
+type teamGameLeader struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
+}
+
+type teamGameLogResp struct {
+	GameID     string          `json:"game_id"`
+	GameDate   string          `json:"game_date"`
+	HomeTeam   string          `json:"home_team"`
+	AwayTeam   string          `json:"away_team"`
+	HomeScore  int             `json:"home_score"`
+	AwayScore  int             `json:"away_score"`
+	SeasonType string          `json:"season_type"`
+	HomeJersey string          `json:"home_jersey"`
+	AwayJersey string          `json:"away_jersey"`
+	HomePTS    *teamGameLeader `json:"home_pts_leader"`
+	HomeREB    *teamGameLeader `json:"home_reb_leader"`
+	HomeAST    *teamGameLeader `json:"home_ast_leader"`
+	AwayPTS    *teamGameLeader `json:"away_pts_leader"`
+	AwayREB    *teamGameLeader `json:"away_reb_leader"`
+	AwayAST    *teamGameLeader `json:"away_ast_leader"`
+}
+
+type playerGameLogResp struct {
+	GameDate   string  `json:"game_date"`
+	HomeTeam   string  `json:"home_team"`
+	AwayTeam   string  `json:"away_team"`
+	HomeScore  int     `json:"home_score"`
+	AwayScore  int     `json:"away_score"`
+	HomeJersey string  `json:"home_jersey"`
+	AwayJersey string  `json:"away_jersey"`
+	PTS        int     `json:"pts"`
+	REB        int     `json:"reb"`
+	AST        int     `json:"ast"`
+	FGM        int     `json:"fgm"`
+	FGA        int     `json:"fga"`
+	FG3M       int     `json:"fg3m"`
+	FG3A       int     `json:"fg3a"`
+	FTM        int     `json:"ftm"`
+	FTA        int     `json:"fta"`
+	MIN        float64 `json:"min"`
+	PlusMinus  float64 `json:"plus_minus"`
 }
 
 // --- Handlers ---
@@ -288,6 +346,132 @@ func MissingAssignments(q *gen.Queries) http.HandlerFunc {
 				HomeTeam:   row.HomeTeam,
 				AwayTeam:   row.AwayTeam,
 				SeasonType: row.SeasonType,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// GetTeamGameLog handles GET /api/v1/teams/{teamID}/game-log.
+func GetTeamGameLog(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		games, err := q.GetTeamGameLog(r.Context(), gen.GetTeamGameLogParams{
+			HomeTeam: teamID,
+			Season:   defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		playerLogs, err := q.GetPlayerGameLogsForTeam(r.Context(), gen.GetPlayerGameLogsForTeamParams{
+			HomeTeam: teamID,
+			Season:   defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Group player logs by game_id+team_id, find leader per stat.
+		type key struct {
+			gameID, teamID string
+		}
+		type leader struct {
+			pts, reb, ast    int
+			ptsN, rebN, astN string
+		}
+		leaders := map[key]*leader{}
+		for _, pl := range playerLogs {
+			k := key{pl.GameID, pl.TeamID}
+			l, ok := leaders[k]
+			if !ok {
+				l = &leader{}
+				leaders[k] = l
+			}
+			pts := toInt(pl.Pts)
+			reb := toInt(pl.Reb)
+			ast := toInt(pl.Ast)
+			if pts > l.pts {
+				l.pts = pts
+				l.ptsN = pl.PlayerName
+			}
+			if reb > l.reb {
+				l.reb = reb
+				l.rebN = pl.PlayerName
+			}
+			if ast > l.ast {
+				l.ast = ast
+				l.astN = pl.PlayerName
+			}
+		}
+
+		out := make([]teamGameLogResp, len(games))
+		for i, g := range games {
+			resp := teamGameLogResp{
+				GameID:     g.GameID,
+				GameDate:   g.GameDate.Time.Format("2006-01-02"),
+				HomeTeam:   g.HomeTeam,
+				AwayTeam:   g.AwayTeam,
+				HomeScore:  toInt(g.HomeScore),
+				AwayScore:  toInt(g.AwayScore),
+				SeasonType: g.SeasonType,
+				HomeJersey: toText(g.HomeJersey),
+				AwayJersey: toText(g.AwayJersey),
+			}
+			if hl := leaders[key{g.GameID, g.HomeTeam}]; hl != nil {
+				resp.HomePTS = &teamGameLeader{Name: hl.ptsN, Value: hl.pts}
+				resp.HomeREB = &teamGameLeader{Name: hl.rebN, Value: hl.reb}
+				resp.HomeAST = &teamGameLeader{Name: hl.astN, Value: hl.ast}
+			}
+			if al := leaders[key{g.GameID, g.AwayTeam}]; al != nil {
+				resp.AwayPTS = &teamGameLeader{Name: al.ptsN, Value: al.pts}
+				resp.AwayREB = &teamGameLeader{Name: al.rebN, Value: al.reb}
+				resp.AwayAST = &teamGameLeader{Name: al.astN, Value: al.ast}
+			}
+			out[i] = resp
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// GetPlayerGameLog handles GET /api/v1/players/{playerID}/game-log.
+func GetPlayerGameLog(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID := chi.URLParam(r, "playerID")
+
+		rows, err := q.GetPlayerGameLog(r.Context(), gen.GetPlayerGameLogParams{
+			PlayerID: playerID,
+			Season:   defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]playerGameLogResp, len(rows))
+		for i, row := range rows {
+			out[i] = playerGameLogResp{
+				GameDate:   row.GameDate.Time.Format("2006-01-02"),
+				HomeTeam:   row.HomeTeam,
+				AwayTeam:   row.AwayTeam,
+				HomeScore:  toInt(row.HomeScore),
+				AwayScore:  toInt(row.AwayScore),
+				HomeJersey: toText(row.HomeJersey),
+				AwayJersey: toText(row.AwayJersey),
+				PTS:        toInt(row.Pts),
+				REB:        toInt(row.Reb),
+				AST:        toInt(row.Ast),
+				FGM:        toInt(row.Fgm),
+				FGA:        toInt(row.Fga),
+				FG3M:       toInt(row.Fg3m),
+				FG3A:       toInt(row.Fg3a),
+				FTM:        toInt(row.Ftm),
+				FTA:        toInt(row.Fta),
+				MIN:        toFloat(row.Min),
+				PlusMinus:  toFloat(row.PlusMinus),
 			}
 		}
 		writeJSON(w, http.StatusOK, out)
