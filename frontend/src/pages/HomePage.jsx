@@ -21,9 +21,9 @@ export default function HomePage() {
   if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="flex flex-col items-center gap-4 mt-12 mb-10 w-full">
-        <h1 className="text-4xl font-bold text-gray-900">NBA Jersey Stats</h1>
+    <div className="flex flex-col items-center min-h-[calc(100vh-4rem)]">
+      <div className="flex flex-col items-center justify-end gap-4 w-full pb-8" style={{ minHeight: '40vh' }}>
+        <h1 className="text-4xl font-bold text-gray-900">Jersey Stats</h1>
         <p className="text-gray-500">Search for a player or select a team below</p>
         <SearchBar />
       </div>
