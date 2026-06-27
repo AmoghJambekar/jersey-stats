@@ -62,7 +62,7 @@ export default function PlayerPage() {
 
   return (
     <div>
-      <Link to="/" className="text-sm text-blue-600 hover:underline">&larr; Home</Link>
+      <Link to="/" className="text-sm text-blue-600 hover:underline">&larr; All Teams</Link>
       <h1 className="text-3xl font-bold text-gray-900 mt-2">
         {playerName || `Player ${playerId}`}
       </h1>
