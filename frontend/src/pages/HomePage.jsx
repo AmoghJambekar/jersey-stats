@@ -22,7 +22,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center min-h-[calc(100vh-4rem)]">
-      <div className="flex flex-col items-center justify-end gap-4 w-full pb-8" style={{ minHeight: '40vh' }}>
+      <div className="flex flex-col items-center justify-end gap-4 w-full pb-8 min-h-[40vh]">
         <h1 className="text-4xl font-bold text-gray-900">Jersey Stats</h1>
         <p className="text-gray-500">Search for a player or select a team below</p>
         <SearchBar />
