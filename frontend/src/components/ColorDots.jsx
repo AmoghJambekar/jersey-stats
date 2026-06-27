@@ -12,7 +12,7 @@ const COLOR_MAP = {
   gray: '#8A8D90',
   grey: '#8A8D90',
   teal: '#00778B',
-  pink: '#E56020',
+  pink: '#FF69B4',
   cream: '#FFF1CD',
   silver: '#C4CED4',
   maroon: '#6F263D',
