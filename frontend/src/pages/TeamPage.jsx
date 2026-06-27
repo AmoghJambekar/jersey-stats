@@ -62,7 +62,7 @@ export default function TeamPage() {
     <div>
       <Link to="/" className="text-sm text-blue-600 hover:underline">&larr; All Teams</Link>
       <h1 className="text-3xl font-bold text-gray-900 mt-2">
-        {team?.city} {team?.name}
+        {team?.name}
       </h1>
       <h2 className="text-lg text-gray-600 mb-6">Jersey Stats &mdash; 2025-26</h2>
       <StatsTable columns={columns} rows={stats} />
