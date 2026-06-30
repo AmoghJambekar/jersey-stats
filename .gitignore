@@ -52,3 +52,4 @@ Thumbs.db
 *.db
 docker-data/
 .gstack/
+.gstack-audit/screenshots/
