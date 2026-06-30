@@ -269,6 +269,29 @@ func GetTeamJerseyStats(q *gen.Queries) http.HandlerFunc {
 	}
 }
 
+// GetPlayerInfo handles GET /api/v1/players/{playerID}/info.
+func GetPlayerInfo(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID := chi.URLParam(r, "playerID")
+
+		row, err := q.GetPlayerInfo(r.Context(), playerID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, "player not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		writeJSON(w, http.StatusOK, rosterPlayerResp{
+			PlayerID:   row.PlayerID,
+			PlayerName: row.PlayerName,
+			TeamID:     row.TeamID,
+		})
+	}
+}
+
 // GetPlayerJerseyStats handles GET /api/v1/players/{playerID}/jersey-stats.
 func GetPlayerJerseyStats(q *gen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

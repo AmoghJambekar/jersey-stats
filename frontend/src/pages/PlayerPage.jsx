@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
+import { fetchPlayerInfo, fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
 
 const columns = [
@@ -35,9 +35,9 @@ const gameLogColumns = [
 export default function PlayerPage() {
   const { playerId } = useParams();
   const location = useLocation();
-  const playerName = location.state?.playerName;
-  const teamId = location.state?.teamId;
 
+  const [playerName, setPlayerName] = useState(location.state?.playerName || null);
+  const [teamId, setTeamId] = useState(location.state?.teamId || null);
   const [stats, setStats] = useState([]);
   const [gameLog, setGameLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,11 +45,20 @@ export default function PlayerPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId)])
-      .then(([statsData, gameLogData]) => {
-        if (!cancelled) {
-          setStats(statsData);
-          setGameLog(gameLogData);
+
+    const fetches = [fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId)];
+    if (!playerName) {
+      fetches.push(fetchPlayerInfo(playerId));
+    }
+
+    Promise.all(fetches)
+      .then((results) => {
+        if (cancelled) return;
+        setStats(results[0]);
+        setGameLog(results[1]);
+        if (results[2]) {
+          setPlayerName(results[2].player_name);
+          setTeamId(results[2].team_id);
         }
       })
       .catch((e) => { if (!cancelled) setError(e.message); })

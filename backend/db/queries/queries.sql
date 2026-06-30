@@ -177,6 +177,12 @@ WHERE (g.home_team = $1 OR g.away_team = $1) AND g.season = $2
   AND g.home_score IS NOT NULL
 ORDER BY pgl.game_id;
 
+-- name: GetPlayerInfo :one
+SELECT DISTINCT player_id, player_name, team_id
+FROM player_game_logs
+WHERE player_id = $1
+LIMIT 1;
+
 -- name: GetPlayerGameLog :many
 SELECT g.game_date, g.home_team, g.away_team, g.home_score, g.away_score,
        hje.edition_name AS home_jersey, aje.edition_name AS away_jersey,

@@ -51,3 +51,4 @@ Thumbs.db
 # Local databases
 *.db
 docker-data/
+.gstack/
