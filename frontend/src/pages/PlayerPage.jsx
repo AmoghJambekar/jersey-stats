@@ -46,19 +46,18 @@ export default function PlayerPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const fetches = [fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId)];
-    if (!playerName) {
-      fetches.push(fetchPlayerInfo(playerId));
-    }
+    const infoFetch = !playerName
+      ? fetchPlayerInfo(playerId).catch(() => null)
+      : Promise.resolve(null);
 
-    Promise.all(fetches)
-      .then((results) => {
+    Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId), infoFetch])
+      .then(([statsData, gameLogData, info]) => {
         if (cancelled) return;
-        setStats(results[0]);
-        setGameLog(results[1]);
-        if (results[2]) {
-          setPlayerName(results[2].player_name);
-          setTeamId(results[2].team_id);
+        setStats(statsData);
+        setGameLog(gameLogData);
+        if (info) {
+          setPlayerName(info.player_name);
+          setTeamId(info.team_id);
         }
       })
       .catch((e) => { if (!cancelled) setError(e.message); })
