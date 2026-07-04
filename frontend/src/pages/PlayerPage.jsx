@@ -17,13 +17,23 @@ const columns = [
   { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + Math.round(v) },
 ];
 
+const fmtDate = (d) => {
+  const [y, m, day] = d.split('-');
+  const date = new Date(+y, +m - 1, +day);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const stacked = (top, bottom) => (
+  <div className="flex flex-col leading-tight">
+    <span>{top}</span>
+    <span>{bottom}</span>
+  </div>
+);
+
 const gameLogColumns = [
-  { key: 'game_date', label: 'Date' },
-  { key: 'team_id', label: 'Team' },
-  { key: 'home_team', label: 'Home' },
-  { key: 'away_team', label: 'Away' },
-  { key: 'home_jersey', label: 'Home Jersey' },
-  { key: 'away_jersey', label: 'Away Jersey' },
+  { key: 'game_date', label: 'Date', format: (v) => fmtDate(v) },
+  { key: 'game', label: 'Game', format: (_, row) => stacked(`${row.away_team} ${row.away_score}`, `${row.home_team} ${row.home_score}`) },
+  { key: 'jersey', label: 'Jersey', format: (_, row) => stacked(row.away_jersey || '—', row.home_jersey || '—') },
   { key: 'pts', label: 'PTS' },
   { key: 'reb', label: 'REB' },
   { key: 'ast', label: 'AST' },

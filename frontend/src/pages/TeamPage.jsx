@@ -15,19 +15,26 @@ const columns = [
 
 const fmtLeader = (l) => l ? `${l.name} (${l.value})` : '';
 
+const stacked = (top, bottom) => (
+  <div className="flex flex-col leading-tight">
+    <span>{top}</span>
+    <span>{bottom}</span>
+  </div>
+);
+
+const fmtDate = (d) => {
+  const [y, m, day] = d.split('-');
+  const date = new Date(+y, +m - 1, +day);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const gameLogColumns = [
-  { key: 'game_date', label: 'Date' },
-  { key: 'away_team', label: 'Away' },
-  { key: 'home_team', label: 'Home' },
-  { key: 'away_jersey', label: 'Away Jersey' },
-  { key: 'home_jersey', label: 'Home Jersey' },
-  { key: 'score', label: 'Score', format: (_, row) => `${row.away_score} - ${row.home_score}` },
-  { key: 'away_pts_leader', label: 'Away PTS', format: (v) => fmtLeader(v) },
-  { key: 'away_reb_leader', label: 'Away REB', format: (v) => fmtLeader(v) },
-  { key: 'away_ast_leader', label: 'Away AST', format: (v) => fmtLeader(v) },
-  { key: 'home_pts_leader', label: 'Home PTS', format: (v) => fmtLeader(v) },
-  { key: 'home_reb_leader', label: 'Home REB', format: (v) => fmtLeader(v) },
-  { key: 'home_ast_leader', label: 'Home AST', format: (v) => fmtLeader(v) },
+  { key: 'game_date', label: 'Date', format: (v) => fmtDate(v) },
+  { key: 'away_team', label: 'Game', format: (_, row) => stacked(`${row.away_team} ${row.away_score}`, `${row.home_team} ${row.home_score}`) },
+  { key: 'away_jersey', label: 'Jersey', format: (_, row) => stacked(row.away_jersey || '—', row.home_jersey || '—') },
+  { key: 'pts_leader', label: 'PTS', format: (_, row) => stacked(fmtLeader(row.away_pts_leader), fmtLeader(row.home_pts_leader)) },
+  { key: 'reb_leader', label: 'REB', format: (_, row) => stacked(fmtLeader(row.away_reb_leader), fmtLeader(row.home_reb_leader)) },
+  { key: 'ast_leader', label: 'AST', format: (_, row) => stacked(fmtLeader(row.away_ast_leader), fmtLeader(row.home_ast_leader)) },
 ];
 
 export default function TeamPage() {
@@ -75,6 +82,7 @@ export default function TeamPage() {
               <li key={p.player_id}>
                 <Link
                   to={`/players/${p.player_id}`}
+                  state={{ playerName: p.player_name }}
                   className="text-blue-600 hover:underline"
                 >
                   {p.player_name}
