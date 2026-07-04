@@ -47,9 +47,7 @@ export default function PlayerPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const infoFetch = !playerName
-      ? fetchPlayerInfo(playerId).catch(() => null)
-      : Promise.resolve(null);
+    const infoFetch = fetchPlayerInfo(playerId).catch(() => null);
 
     Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId), infoFetch])
       .then(([statsData, gameLogData, info]) => {
@@ -77,7 +75,7 @@ export default function PlayerPage() {
         {playerName || `Player ${playerId}`}
       </h1>
       {(teamName || teamId) && <p className="text-gray-500 mb-6">{teamName || teamId}</p>}
-      <h2 className="text-lg text-gray-600 mb-6">Jersey Stats &mdash; 2025-26</h2>
+      <div className="mb-6" />
       <StatsTable columns={columns} rows={stats} />
 
       {gameLog.length > 0 && (
