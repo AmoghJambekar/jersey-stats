@@ -32,6 +32,7 @@ const stacked = (top, bottom) => (
 
 const gameLogColumns = [
   { key: 'game_date', label: 'Date', format: (v) => fmtDate(v) },
+  { key: 'team_id', label: 'Team' },
   { key: 'game', label: 'Game', format: (_, row) => stacked(`${row.away_team} ${row.away_score}`, `${row.home_team} ${row.home_score}`) },
   { key: 'jersey', label: 'Jersey', format: (_, row) => stacked(row.away_jersey || '—', row.home_jersey || '—') },
   { key: 'pts', label: 'PTS' },
@@ -78,6 +79,7 @@ export default function PlayerPage() {
   if (loading) return <p className="text-gray-500">Loading player...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
 
+  const multiTeam = teams.length > 1;
   const teamLabel = teams.length > 0
     ? teams.map((t) => t.team_name).join(' → ')
     : null;
@@ -90,12 +92,12 @@ export default function PlayerPage() {
       </h1>
       {teamLabel && <p className="text-gray-500">{teamLabel}</p>}
       <div className="mb-6" />
-      <StatsTable columns={columns} rows={stats} />
+      <StatsTable columns={multiTeam ? columns : columns.filter((c) => c.key !== 'team_name')} rows={stats} />
 
       {gameLog.length > 0 && (
         <>
           <h2 className="text-lg text-gray-600 mt-8 mb-4">Game Log</h2>
-          <StatsTable columns={gameLogColumns} rows={gameLog} />
+          <StatsTable columns={multiTeam ? gameLogColumns : gameLogColumns.filter((c) => c.key !== 'team_id')} rows={gameLog} />
         </>
       )}
     </div>
