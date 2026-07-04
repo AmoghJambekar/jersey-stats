@@ -334,7 +334,7 @@ func SearchPlayers(q *gen.Queries) http.HandlerFunc {
 			return
 		}
 
-		rows, err := q.SearchPlayers(r.Context(), query+"%")
+		rows, err := q.SearchPlayers(r.Context(), "%"+query+"%")
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
