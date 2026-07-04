@@ -107,7 +107,7 @@ ORDER BY games_played DESC;
 -- name: GetTeamRoster :many
 SELECT player_id, player_name, team_id
 FROM (SELECT DISTINCT player_id, player_name, team_id FROM player_game_logs WHERE team_id = $1) sub
-ORDER BY regexp_replace(player_name, '.* ', ''), player_name;
+ORDER BY regexp_replace(regexp_replace(player_name, '\s+(Jr\.|Sr\.|II|III|IV)$', ''), '.* ', ''), player_name;
 
 -- name: SearchPlayers :many
 -- Search players by name prefix (case-insensitive).
