@@ -11,10 +11,10 @@ const columns = [
   { key: 'ppg', label: 'PPG', format: (v) => v?.toFixed(1) },
   { key: 'rpg', label: 'RPG', format: (v) => v?.toFixed(1) },
   { key: 'apg', label: 'APG', format: (v) => v?.toFixed(1) },
-  { key: 'fg3_mpg', label: '3PM', format: (v) => v?.toFixed(1) },
+  { key: 'fg3_pct', label: '3P%', format: (v) => v?.toFixed(1) },
   { key: 'fg_pct', label: 'FG%', format: (v) => v?.toFixed(1) },
   { key: 'ft_pct', label: 'FT%', format: (v) => v?.toFixed(1) },
-  { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + v?.toFixed(1) },
+  { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + Math.round(v) },
 ];
 
 const gameLogColumns = [
@@ -30,8 +30,8 @@ const gameLogColumns = [
   { key: 'fg', label: 'FGM/FGA', format: (_, row) => `${row.fgm}/${row.fga}` },
   { key: 'fg3', label: 'FG3M/FG3A', format: (_, row) => `${row.fg3m}/${row.fg3a}` },
   { key: 'ft', label: 'FTM/FTA', format: (_, row) => `${row.ftm}/${row.fta}` },
-  { key: 'min', label: 'MIN', format: (v) => v?.toFixed(1) },
-  { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + v?.toFixed(1) },
+  { key: 'min', label: 'MIN', format: (v) => Math.round(v) },
+  { key: 'plus_minus', label: '+/-', format: (v) => (v > 0 ? '+' : '') + Math.round(v) },
 ];
 
 export default function PlayerPage() {

@@ -88,7 +88,10 @@ SELECT
   ROUND(AVG(pgl.pts), 1) AS ppg,
   ROUND(AVG(pgl.reb), 1) AS rpg,
   ROUND(AVG(pgl.ast), 1) AS apg,
-  ROUND(AVG(pgl.fg3m), 1) AS fg3_mpg,
+  CASE WHEN SUM(pgl.fg3a) > 0
+    THEN ROUND(SUM(pgl.fg3m)::NUMERIC / SUM(pgl.fg3a) * 100, 1)
+    ELSE 0::NUMERIC
+  END AS fg3_pct,
   CASE WHEN SUM(pgl.fga) > 0
     THEN ROUND(SUM(pgl.fgm)::NUMERIC / SUM(pgl.fga) * 100, 1)
     ELSE 0::NUMERIC

@@ -87,7 +87,7 @@ type playerJerseyStatsResp struct {
 	PPG         float64  `json:"ppg"`
 	RPG         float64  `json:"rpg"`
 	APG         float64  `json:"apg"`
-	FG3MPG      float64  `json:"fg3_mpg"`
+	FG3Pct      float64  `json:"fg3_pct"`
 	FGPct       float64  `json:"fg_pct"`
 	FTPct       float64  `json:"ft_pct"`
 	PlusMinus   float64  `json:"plus_minus"`
@@ -326,7 +326,7 @@ func GetPlayerJerseyStats(q *gen.Queries) http.HandlerFunc {
 				PPG:         toFloat(row.Ppg),
 				RPG:         toFloat(row.Rpg),
 				APG:         toFloat(row.Apg),
-				FG3MPG:      toFloat(row.Fg3Mpg),
+				FG3Pct:      toFloat(row.Fg3Pct),
 				FGPct:       toFloat(row.FgPct),
 				FTPct:       toFloat(row.FtPct),
 				PlusMinus:   toFloat(row.PlusMinus),
