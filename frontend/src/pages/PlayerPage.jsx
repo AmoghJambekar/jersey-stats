@@ -37,6 +37,7 @@ export default function PlayerPage() {
   const location = useLocation();
 
   const [playerName, setPlayerName] = useState(location.state?.playerName || null);
+  const [teamName, setTeamName] = useState(location.state?.teamName || null);
   const [teamId, setTeamId] = useState(location.state?.teamId || null);
   const [stats, setStats] = useState([]);
   const [gameLog, setGameLog] = useState([]);
@@ -57,6 +58,7 @@ export default function PlayerPage() {
         setGameLog(gameLogData);
         if (info) {
           setPlayerName(info.player_name);
+          setTeamName(info.team_name);
           setTeamId(info.team_id);
         }
       })
@@ -74,7 +76,7 @@ export default function PlayerPage() {
       <h1 className="text-3xl font-bold text-gray-900 mt-2">
         {playerName || `Player ${playerId}`}
       </h1>
-      {teamId && <p className="text-gray-500 mb-6">{teamId}</p>}
+      {(teamName || teamId) && <p className="text-gray-500 mb-6">{teamName || teamId}</p>}
       <h2 className="text-lg text-gray-600 mb-6">Jersey Stats &mdash; 2025-26</h2>
       <StatsTable columns={columns} rows={stats} />
 

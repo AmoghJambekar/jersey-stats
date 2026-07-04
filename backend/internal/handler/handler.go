@@ -111,6 +111,13 @@ type rosterPlayerResp struct {
 	TeamID     string `json:"team_id"`
 }
 
+type playerInfoResp struct {
+	PlayerID   string `json:"player_id"`
+	PlayerName string `json:"player_name"`
+	TeamID     string `json:"team_id"`
+	TeamName   string `json:"team_name"`
+}
+
 type teamGameLeader struct {
 	Name  string `json:"name"`
 	Value int    `json:"value"`
@@ -284,10 +291,11 @@ func GetPlayerInfo(q *gen.Queries) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, rosterPlayerResp{
+		writeJSON(w, http.StatusOK, playerInfoResp{
 			PlayerID:   row.PlayerID,
 			PlayerName: row.PlayerName,
 			TeamID:     row.TeamID,
+			TeamName:   row.TeamName,
 		})
 	}
 }

@@ -177,9 +177,10 @@ WHERE (g.home_team = $1 OR g.away_team = $1) AND g.season = $2
 ORDER BY pgl.game_id;
 
 -- name: GetPlayerInfo :one
-SELECT DISTINCT player_id, player_name, team_id
-FROM player_game_logs
-WHERE player_id = $1
+SELECT DISTINCT pgl.player_id, pgl.player_name, pgl.team_id, t.name AS team_name
+FROM player_game_logs pgl
+JOIN teams t ON t.id = pgl.team_id
+WHERE pgl.player_id = $1
 LIMIT 1;
 
 -- name: GetPlayerGameLog :many
