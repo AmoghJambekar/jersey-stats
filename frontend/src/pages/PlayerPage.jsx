@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { fetchPlayerInfo, fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
+import { fetchPlayerTeams, fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
 
 const columns = [
+  { key: 'team_name', label: 'Team' },
   { key: 'edition_name', label: 'Edition' },
   { key: 'color_tags', label: 'Colors' },
   { key: 'games_played', label: 'GP' },
@@ -18,6 +19,7 @@ const columns = [
 
 const gameLogColumns = [
   { key: 'game_date', label: 'Date' },
+  { key: 'team_id', label: 'Team' },
   { key: 'home_team', label: 'Home' },
   { key: 'away_team', label: 'Away' },
   { key: 'home_jersey', label: 'Home Jersey' },
@@ -37,8 +39,7 @@ export default function PlayerPage() {
   const location = useLocation();
 
   const [playerName, setPlayerName] = useState(location.state?.playerName || null);
-  const [teamName, setTeamName] = useState(location.state?.teamName || null);
-  const [teamId, setTeamId] = useState(location.state?.teamId || null);
+  const [teams, setTeams] = useState([]);
   const [stats, setStats] = useState([]);
   const [gameLog, setGameLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,17 +48,16 @@ export default function PlayerPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const infoFetch = fetchPlayerInfo(playerId).catch(() => null);
+    const teamsFetch = fetchPlayerTeams(playerId).catch(() => []);
 
-    Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId), infoFetch])
-      .then(([statsData, gameLogData, info]) => {
+    Promise.all([fetchPlayerJerseyStats(playerId), fetchPlayerGameLog(playerId), teamsFetch])
+      .then(([statsData, gameLogData, teamsData]) => {
         if (cancelled) return;
         setStats(statsData);
         setGameLog(gameLogData);
-        if (info) {
-          setPlayerName(info.player_name);
-          setTeamName(info.team_name);
-          setTeamId(info.team_id);
+        setTeams(teamsData);
+        if (!playerName && teamsData.length > 0) {
+          setPlayerName(teamsData[0].player_name);
         }
       })
       .catch((e) => { if (!cancelled) setError(e.message); })
@@ -68,13 +68,17 @@ export default function PlayerPage() {
   if (loading) return <p className="text-gray-500">Loading player...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
 
+  const teamLabel = teams.length > 0
+    ? teams.map((t) => t.team_name).join(' → ')
+    : null;
+
   return (
     <div>
       <Link to="/" className="text-sm text-blue-600 hover:underline">&larr; All Teams</Link>
       <h1 className="text-3xl font-bold text-gray-900 mt-2">
         {playerName || `Player ${playerId}`}
       </h1>
-      {(teamName || teamId) && <p className="text-gray-500 mb-6">{teamName || teamId}</p>}
+      {teamLabel && <p className="text-gray-500">{teamLabel}</p>}
       <div className="mb-6" />
       <StatsTable columns={columns} rows={stats} />
 

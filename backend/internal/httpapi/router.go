@@ -61,7 +61,7 @@ func NewRouter(pool *pgxpool.Pool) http.Handler {
 		r.Get("/teams/{teamID}/jersey-stats", handler.GetTeamJerseyStats(q))
 		r.Get("/teams/{teamID}/roster", handler.GetTeamRoster(q))
 		r.Get("/teams/{teamID}/game-log", handler.GetTeamGameLog(q))
-		r.Get("/players/{playerID}/info", handler.GetPlayerInfo(q))
+		r.Get("/players/{playerID}/teams", handler.GetPlayerTeams(q))
 		r.Get("/players/{playerID}/jersey-stats", handler.GetPlayerJerseyStats(q))
 		r.Get("/players/{playerID}/game-log", handler.GetPlayerGameLog(q))
 		r.Get("/players/search", handler.SearchPlayers(q))

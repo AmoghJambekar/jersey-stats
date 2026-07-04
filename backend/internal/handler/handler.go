@@ -79,6 +79,8 @@ type teamJerseyStatsResp struct {
 }
 
 type playerJerseyStatsResp struct {
+	TeamID      string   `json:"team_id"`
+	TeamName    string   `json:"team_name"`
 	EditionName string   `json:"edition_name"`
 	ColorTags   []string `json:"color_tags"`
 	GamesPlayed int32    `json:"games_played"`
@@ -111,11 +113,10 @@ type rosterPlayerResp struct {
 	TeamID     string `json:"team_id"`
 }
 
-type playerInfoResp struct {
-	PlayerID   string `json:"player_id"`
-	PlayerName string `json:"player_name"`
+type playerTeamResp struct {
 	TeamID     string `json:"team_id"`
 	TeamName   string `json:"team_name"`
+	PlayerName string `json:"player_name"`
 }
 
 type teamGameLeader struct {
@@ -149,6 +150,7 @@ type playerGameLogResp struct {
 	AwayScore  int     `json:"away_score"`
 	HomeJersey string  `json:"home_jersey"`
 	AwayJersey string  `json:"away_jersey"`
+	TeamID     string  `json:"team_id"`
 	PTS        int     `json:"pts"`
 	REB        int     `json:"reb"`
 	AST        int     `json:"ast"`
@@ -276,27 +278,26 @@ func GetTeamJerseyStats(q *gen.Queries) http.HandlerFunc {
 	}
 }
 
-// GetPlayerInfo handles GET /api/v1/players/{playerID}/info.
-func GetPlayerInfo(q *gen.Queries) http.HandlerFunc {
+// GetPlayerTeams handles GET /api/v1/players/{playerID}/teams.
+func GetPlayerTeams(q *gen.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
 
-		row, err := q.GetPlayerInfo(r.Context(), playerID)
+		rows, err := q.GetPlayerTeams(r.Context(), playerID)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				http.Error(w, "player not found", http.StatusNotFound)
-				return
-			}
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 
-		writeJSON(w, http.StatusOK, playerInfoResp{
-			PlayerID:   row.PlayerID,
-			PlayerName: row.PlayerName,
-			TeamID:     row.TeamID,
-			TeamName:   row.TeamName,
-		})
+		out := make([]playerTeamResp, len(rows))
+		for i, row := range rows {
+			out[i] = playerTeamResp{
+				TeamID:     row.TeamID,
+				TeamName:   row.TeamName,
+				PlayerName: row.PlayerName,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 
@@ -317,6 +318,8 @@ func GetPlayerJerseyStats(q *gen.Queries) http.HandlerFunc {
 		out := make([]playerJerseyStatsResp, len(rows))
 		for i, row := range rows {
 			out[i] = playerJerseyStatsResp{
+				TeamID:      row.TeamID,
+				TeamName:    row.TeamName,
 				EditionName: row.EditionName,
 				ColorTags:   row.ColorTags,
 				GamesPlayed: row.GamesPlayed,
@@ -492,6 +495,7 @@ func GetPlayerGameLog(q *gen.Queries) http.HandlerFunc {
 				AwayScore:  toInt(row.AwayScore),
 				HomeJersey: toText(row.HomeJersey),
 				AwayJersey: toText(row.AwayJersey),
+				TeamID:     row.TeamID,
 				PTS:        toInt(row.Pts),
 				REB:        toInt(row.Reb),
 				AST:        toInt(row.Ast),

@@ -80,6 +80,8 @@ ORDER BY games_played DESC;
 -- name: GetPlayerJerseyStats :many
 -- Player stats aggregated by jersey edition for a given season.
 SELECT
+  pgl.team_id,
+  t.name AS team_name,
   je.edition_name,
   je.color_tags,
   COUNT(*)::INT AS games_played,
@@ -97,11 +99,12 @@ SELECT
   END AS ft_pct,
   ROUND(AVG(pgl.plus_minus), 1) AS plus_minus
 FROM player_game_logs pgl
+JOIN teams t ON t.id = pgl.team_id
 JOIN games g ON g.game_id = pgl.game_id
 JOIN game_jersey_assignments gja ON gja.game_id = g.game_id AND gja.team_id = pgl.team_id
 JOIN jersey_editions je ON je.id = gja.jersey_id
 WHERE pgl.player_id = $1 AND g.season = $2
-GROUP BY je.edition_name, je.color_tags
+GROUP BY pgl.team_id, t.name, je.edition_name, je.color_tags
 ORDER BY games_played DESC;
 
 -- name: GetTeamRoster :many
@@ -110,11 +113,17 @@ FROM (SELECT DISTINCT player_id, player_name, team_id FROM player_game_logs WHER
 ORDER BY regexp_replace(regexp_replace(player_name, '\s+(Jr\.|Sr\.|II|III|IV)$', ''), '.* ', ''), player_name;
 
 -- name: SearchPlayers :many
--- Search players by name prefix (case-insensitive).
--- Caller must append '%' to the search term.
-SELECT DISTINCT player_id, player_name, team_id
-FROM player_game_logs
-WHERE player_name ILIKE $1
+-- Search players by name (case-insensitive). Returns one row per player.
+-- Caller must wrap the search term with '%'.
+SELECT player_id, player_name, team_id
+FROM (
+  SELECT player_id, player_name, team_id,
+         ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY MAX(game_id) DESC) AS rn
+  FROM player_game_logs
+  WHERE player_name ILIKE $1
+  GROUP BY player_id, player_name, team_id
+) sub
+WHERE rn = 1
 ORDER BY player_name
 LIMIT 20;
 
@@ -176,17 +185,23 @@ WHERE (g.home_team = $1 OR g.away_team = $1) AND g.season = $2
   AND g.home_score IS NOT NULL
 ORDER BY pgl.game_id;
 
--- name: GetPlayerInfo :one
-SELECT DISTINCT pgl.player_id, pgl.player_name, pgl.team_id, t.name AS team_name
-FROM player_game_logs pgl
-JOIN teams t ON t.id = pgl.team_id
-WHERE pgl.player_id = $1
-LIMIT 1;
+-- name: GetPlayerTeams :many
+-- All teams a player has played for, ordered by first game date.
+SELECT sub.team_id, t.name AS team_name, sub.player_name::TEXT AS player_name
+FROM (
+  SELECT pgl.team_id, MAX(pgl.player_name) AS player_name, MIN(g.game_date) AS first_game
+  FROM player_game_logs pgl
+  JOIN games g ON g.game_id = pgl.game_id
+  WHERE pgl.player_id = $1
+  GROUP BY pgl.team_id
+) sub
+JOIN teams t ON t.id = sub.team_id
+ORDER BY sub.first_game;
 
 -- name: GetPlayerGameLog :many
 SELECT g.game_date, g.home_team, g.away_team, g.home_score, g.away_score,
        hje.edition_name AS home_jersey, aje.edition_name AS away_jersey,
-       pgl.pts, pgl.reb, pgl.ast, pgl.fgm, pgl.fga, pgl.fg3m, pgl.fg3a,
+       pgl.team_id, pgl.pts, pgl.reb, pgl.ast, pgl.fgm, pgl.fga, pgl.fg3m, pgl.fg3a,
        pgl.ftm, pgl.fta, pgl.min, pgl.plus_minus
 FROM player_game_logs pgl
 JOIN games g ON g.game_id = pgl.game_id
