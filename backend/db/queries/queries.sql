@@ -105,10 +105,9 @@ GROUP BY je.edition_name, je.color_tags
 ORDER BY games_played DESC;
 
 -- name: GetTeamRoster :many
-SELECT DISTINCT player_id, player_name, team_id
-FROM player_game_logs
-WHERE team_id = $1
-ORDER BY player_name;
+SELECT player_id, player_name, team_id
+FROM (SELECT DISTINCT player_id, player_name, team_id FROM player_game_logs WHERE team_id = $1) sub
+ORDER BY regexp_replace(player_name, '.* ', ''), player_name;
 
 -- name: SearchPlayers :many
 -- Search players by name prefix (case-insensitive).
