@@ -228,6 +228,86 @@ func (ing *Ingester) IngestPlayerLogs(ctx context.Context, season, teamFilter st
 	return nil
 }
 
+// IngestPlayerBios fetches biographical data for all players in the database
+// and upserts into the player_bios table.
+func (ing *Ingester) IngestPlayerBios(ctx context.Context) error {
+	ing.log.Info("fetching distinct player IDs from database")
+
+	playerIDs, err := ing.queries.GetDistinctPlayerIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("get distinct player IDs: %w", err)
+	}
+	ing.log.Info("found players to fetch bios for", "count", len(playerIDs))
+
+	upserted := 0
+	failed := 0
+	for i, pidStr := range playerIDs {
+		pid, err := strconv.Atoi(pidStr)
+		if err != nil {
+			ing.log.Error("invalid player_id", "player_id", pidStr, "err", err)
+			failed++
+			continue
+		}
+
+		bio, err := ing.nba.GetCommonPlayerInfo(ctx, pid)
+		if err != nil {
+			ing.log.Error("failed to fetch player bio", "player_id", pid, "err", err)
+			failed++
+			continue
+		}
+
+		var birthDate pgtype.Date
+		if bio.BirthDate != "" {
+			t, parseErr := time.Parse("2006-01-02", bio.BirthDate)
+			if parseErr == nil {
+				birthDate = pgtype.Date{Time: t, Valid: true}
+			}
+		}
+
+		err = ing.queries.UpsertPlayerBio(ctx, gen.UpsertPlayerBioParams{
+			PlayerID:     pidStr,
+			JerseyNumber: pgText(bio.JerseyNumber),
+			Position:     pgText(bio.Position),
+			Height:       pgText(bio.Height),
+			Weight:       pgInt4OrNull(bio.Weight),
+			BirthDate:    birthDate,
+			Country:      pgText(bio.Country),
+			LastAttended: pgText(bio.School),
+			DraftYear:    pgInt4OrNull(bio.DraftYear),
+			DraftRound:   pgInt4OrNull(bio.DraftRound),
+			DraftNumber:  pgInt4OrNull(bio.DraftNumber),
+			YearsExp:     pgInt4OrNull(bio.SeasonExp),
+		})
+		if err != nil {
+			ing.log.Error("failed to upsert player bio", "player_id", pid, "err", err)
+			failed++
+			continue
+		}
+		upserted++
+
+		if (i+1)%50 == 0 || i+1 == len(playerIDs) {
+			ing.log.Info("bio progress", "completed", i+1, "total", len(playerIDs), "upserted", upserted)
+		}
+	}
+
+	ing.log.Info("player bio ingestion complete", "upserted", upserted, "failed", failed)
+	return nil
+}
+
+func pgText(v string) pgtype.Text {
+	if v == "" {
+		return pgtype.Text{Valid: false}
+	}
+	return pgtype.Text{String: v, Valid: true}
+}
+
+func pgInt4OrNull(v int) pgtype.Int4 {
+	if v == 0 {
+		return pgtype.Int4{Valid: false}
+	}
+	return pgtype.Int4{Int32: int32(v), Valid: true}
+}
+
 func pgInt4(v int) pgtype.Int4 {
 	return pgtype.Int4{Int32: int32(v), Valid: true}
 }

@@ -31,6 +31,7 @@ func main() {
 	seasonType := flag.String("season-type", "", `season type: "Regular Season", "Playoffs", or empty for both`)
 	gamesOnly := flag.Bool("games-only", false, "only ingest games, skip player logs")
 	playersOnly := flag.Bool("players-only", false, "only ingest player logs, skip games")
+	biosOnly := flag.Bool("bios-only", false, "only ingest player bios, skip games and player logs")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -66,6 +67,16 @@ func main() {
 	queries := dbgen.New(pool)
 	client := nba.NewClient(logger)
 	ing := ingest.New(client, queries, logger)
+
+	if *biosOnly {
+		logger.Info("starting player bio ingestion")
+		if err := ing.IngestPlayerBios(ctx); err != nil {
+			logger.Error("player bio ingestion failed", "err", err)
+			os.Exit(1)
+		}
+		logger.Info("ingest complete")
+		return
+	}
 
 	if !*playersOnly {
 		logger.Info("starting game ingestion", "season", *season, "team", *team, "season_types", seasonTypes)

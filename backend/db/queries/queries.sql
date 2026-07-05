@@ -215,3 +215,29 @@ LEFT JOIN jersey_editions aje ON aje.id = agja.jersey_id
 WHERE pgl.player_id = $1 AND g.season = $2
   AND g.home_score IS NOT NULL
 ORDER BY g.game_date DESC;
+
+-- name: GetPlayerBio :one
+SELECT player_id, jersey_number, position, height, weight, birth_date,
+       country, last_attended, draft_year, draft_round, draft_number, years_exp
+FROM player_bios
+WHERE player_id = $1;
+
+-- name: UpsertPlayerBio :exec
+INSERT INTO player_bios (player_id, jersey_number, position, height, weight, birth_date,
+                          country, last_attended, draft_year, draft_round, draft_number, years_exp)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+ON CONFLICT (player_id) DO UPDATE
+SET jersey_number = EXCLUDED.jersey_number,
+    position      = EXCLUDED.position,
+    height        = EXCLUDED.height,
+    weight        = EXCLUDED.weight,
+    birth_date    = EXCLUDED.birth_date,
+    country       = EXCLUDED.country,
+    last_attended = EXCLUDED.last_attended,
+    draft_year    = EXCLUDED.draft_year,
+    draft_round   = EXCLUDED.draft_round,
+    draft_number  = EXCLUDED.draft_number,
+    years_exp     = EXCLUDED.years_exp;
+
+-- name: GetDistinctPlayerIDs :many
+SELECT DISTINCT player_id FROM player_game_logs ORDER BY player_id;

@@ -94,6 +94,22 @@ type PlayerInfo struct {
 	TeamAbbr string // DB abbreviation
 }
 
+// PlayerBioInfo holds biographical data from the commonplayerinfo endpoint.
+type PlayerBioInfo struct {
+	PlayerID     int
+	JerseyNumber string
+	Position     string
+	Height       string // converted from "6-2" to "6'2\""
+	Weight       int
+	BirthDate    string // "1996-08-31" ISO format
+	Country      string
+	School       string
+	DraftYear    int
+	DraftRound   int
+	DraftNumber  int
+	SeasonExp    int
+}
+
 // --- HTTP transport ---
 
 // do executes a rate-limited GET with browser headers and retry on 429.
@@ -327,6 +343,52 @@ func (c *Client) GetPlayerGameLog(ctx context.Context, playerID int, season, sea
 		})
 	}
 	return entries, nil
+}
+
+// GetCommonPlayerInfo fetches biographical data for a single player.
+func (c *Client) GetCommonPlayerInfo(ctx context.Context, playerID int) (*PlayerBioInfo, error) {
+	resp, err := c.do(ctx, "commonplayerinfo", url.Values{
+		"PlayerID": {strconv.Itoa(playerID)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.ResultSets) == 0 || len(resp.ResultSets[0].RowSet) == 0 {
+		return nil, fmt.Errorf("commonplayerinfo: no data for player %d", playerID)
+	}
+
+	rs := resp.ResultSets[0]
+	idx := colIndex(rs.Headers)
+	row := rs.RowSet[0]
+
+	// Convert height from "6-2" to "6'2\""
+	height := getStr(row, idx, "HEIGHT")
+	if parts := strings.SplitN(height, "-", 2); len(parts) == 2 {
+		height = parts[0] + "'" + parts[1] + "\""
+	}
+
+	// Parse birthdate to ISO format
+	birthRaw := getStr(row, idx, "BIRTHDATE")
+	birthDate := ""
+	if len(birthRaw) >= 10 {
+		birthDate = birthRaw[:10]
+	}
+
+	bio := &PlayerBioInfo{
+		PlayerID:     getInt(row, idx, "PERSON_ID"),
+		JerseyNumber: getStr(row, idx, "JERSEY"),
+		Position:     getStr(row, idx, "POSITION"),
+		Height:       height,
+		Weight:       getInt(row, idx, "WEIGHT"),
+		BirthDate:    birthDate,
+		Country:      getStr(row, idx, "COUNTRY"),
+		School:       getStr(row, idx, "SCHOOL"),
+		DraftYear:    getInt(row, idx, "DRAFT_YEAR"),
+		DraftRound:   getInt(row, idx, "DRAFT_ROUND"),
+		DraftNumber:  getInt(row, idx, "DRAFT_NUMBER"),
+		SeasonExp:    getInt(row, idx, "SEASON_EXP"),
+	}
+	return bio, nil
 }
 
 // GetAllPlayers fetches all active players for a season.

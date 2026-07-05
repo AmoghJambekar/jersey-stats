@@ -125,6 +125,21 @@ type playerTeamResp struct {
 	PlayerName string `json:"player_name"`
 }
 
+type playerBioResp struct {
+	PlayerID     string `json:"player_id"`
+	JerseyNumber string `json:"jersey_number"`
+	Position     string `json:"position"`
+	Height       string `json:"height"`
+	Weight       int    `json:"weight"`
+	BirthDate    string `json:"birth_date"`
+	Country      string `json:"country"`
+	LastAttended string `json:"last_attended"`
+	DraftYear    int    `json:"draft_year"`
+	DraftRound   int    `json:"draft_round"`
+	DraftNumber  int    `json:"draft_number"`
+	YearsExp     int    `json:"years_exp"`
+}
+
 type teamGameLeader struct {
 	Name  string `json:"name"`
 	Value int    `json:"value"`
@@ -314,6 +329,43 @@ func GetPlayerTeams(q *gen.Queries) http.HandlerFunc {
 			}
 		}
 		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// GetPlayerBio handles GET /api/v1/players/{playerID}/bio.
+func GetPlayerBio(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID := chi.URLParam(r, "playerID")
+
+		bio, err := q.GetPlayerBio(r.Context(), playerID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, "player bio not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		birthStr := ""
+		if bio.BirthDate.Valid {
+			birthStr = bio.BirthDate.Time.Format("2006-01-02")
+		}
+
+		writeJSON(w, http.StatusOK, playerBioResp{
+			PlayerID:     bio.PlayerID,
+			JerseyNumber: toText(bio.JerseyNumber),
+			Position:     toText(bio.Position),
+			Height:       toText(bio.Height),
+			Weight:       toInt(bio.Weight),
+			BirthDate:    birthStr,
+			Country:      toText(bio.Country),
+			LastAttended: toText(bio.LastAttended),
+			DraftYear:    toInt(bio.DraftYear),
+			DraftRound:   toInt(bio.DraftRound),
+			DraftNumber:  toInt(bio.DraftNumber),
+			YearsExp:     toInt(bio.YearsExp),
+		})
 	}
 }
 

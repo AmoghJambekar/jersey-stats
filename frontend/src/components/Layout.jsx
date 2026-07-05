@@ -2,7 +2,9 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
 export default function Layout() {
-  const isHome = useLocation().pathname === '/';
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
+  const isPlayer = pathname.startsWith('/players/');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -18,9 +20,15 @@ export default function Layout() {
           </div>
         </nav>
       )}
-      <main className={`mx-auto px-4 py-6 ${isHome ? 'max-w-[84rem]' : 'max-w-6xl'}`}>
-        <Outlet />
-      </main>
+      {isPlayer ? (
+        <main>
+          <Outlet />
+        </main>
+      ) : (
+        <main className={`mx-auto px-4 py-6 ${isHome ? 'max-w-[84rem]' : 'max-w-6xl'}`}>
+          <Outlet />
+        </main>
+      )}
     </div>
   );
 }

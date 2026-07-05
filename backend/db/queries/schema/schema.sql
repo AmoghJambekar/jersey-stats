@@ -43,6 +43,21 @@ CREATE TABLE game_jersey_assignments (
   UNIQUE(game_id, team_id)
 );
 
+CREATE TABLE player_bios (
+  player_id     TEXT PRIMARY KEY,
+  jersey_number TEXT,
+  position      TEXT,
+  height        TEXT,            -- e.g. "6'2\""
+  weight        INT,             -- in pounds
+  birth_date    DATE,
+  country       TEXT,
+  last_attended TEXT,
+  draft_year    INT,
+  draft_round   INT,
+  draft_number  INT,
+  years_exp     INT
+);
+
 CREATE TABLE player_game_logs (
   id          SERIAL PRIMARY KEY,
   game_id     TEXT NOT NULL REFERENCES games(game_id),
