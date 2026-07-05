@@ -315,8 +315,11 @@ export default function TeamPage() {
   // Depth chart data
   const depthByPos = buildDepthChart(depthChart);
 
-  // Top 10 standings
-  const miniStandings = standings.slice(0, 10);
+  // 10 teams centered around current team
+  const currentIdx = standings.findIndex((s) => s.team_id === teamId);
+  const miniStart = Math.max(0, Math.min(currentIdx - 4, standings.length - 10));
+  const miniEnd = Math.min(standings.length, miniStart + 10);
+  const miniStandings = standings.slice(miniStart, miniEnd);
 
   const tabs = [
     { id: 'stats', label: 'Stats' },
@@ -363,8 +366,6 @@ export default function TeamPage() {
               {team?.name}
             </h1>
             <div className="flex items-center gap-3 mt-1 text-sm text-white/70">
-              {COACHES[teamId] && <span>Coach: {COACHES[teamId]}</span>}
-              <span className="text-white/40">|</span>
               <span className="text-white text-lg font-semibold">{wins}-{losses}</span>
               {teamRank > 0 && (
                 <>
@@ -478,8 +479,8 @@ export default function TeamPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {miniStandings.map((s, idx) => {
-                      const rank = idx + 1;
+                    {miniStandings.map((s) => {
+                      const rank = standings.indexOf(s) + 1;
                       const pct = (s.wins + s.losses) > 0 ? (s.wins / (s.wins + s.losses)).toFixed(3) : '.000';
                       const isCurrent = s.team_id === teamId;
                       const form = s.form || '';
