@@ -1,6 +1,6 @@
 import ColorDots from './ColorDots';
 
-export default function StatsTable({ columns, rows }) {
+export default function StatsTable({ columns, rows, footerRow }) {
   if (!rows || rows.length === 0) {
     return <p className="text-gray-500">No stats available.</p>;
   }
@@ -34,6 +34,19 @@ export default function StatsTable({ columns, rows }) {
             </tr>
           ))}
         </tbody>
+        {footerRow && (
+          <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+            <tr>
+              {columns.map((col) => (
+                <td key={col.key} className="px-4 py-3">
+                  {col.format && footerRow[col.key] != null
+                    ? col.format(footerRow[col.key], footerRow)
+                    : footerRow[col.key] ?? ''}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );

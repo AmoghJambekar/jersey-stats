@@ -84,6 +84,25 @@ export default function PlayerPage() {
     ? teams.map((t) => t.team_name).join(' → ')
     : null;
 
+  const overallRow = (() => {
+    if (stats.length === 0) return null;
+    const totalGP = stats.reduce((s, r) => s + r.games_played, 0);
+    if (totalGP === 0) return null;
+    const wavg = (key) => stats.reduce((s, r) => s + r[key] * r.games_played, 0) / totalGP;
+    return {
+      team_name: 'Overall',
+      edition_name: 'Overall',
+      games_played: totalGP,
+      ppg: wavg('ppg'),
+      rpg: wavg('rpg'),
+      apg: wavg('apg'),
+      fg3_pct: wavg('fg3_pct'),
+      fg_pct: wavg('fg_pct'),
+      ft_pct: wavg('ft_pct'),
+      plus_minus: wavg('plus_minus'),
+    };
+  })();
+
   return (
     <div>
       <Link to="/" className="text-sm text-blue-600 hover:underline">&larr; All Teams</Link>
@@ -92,7 +111,7 @@ export default function PlayerPage() {
       </h1>
       {teamLabel && <p className="text-gray-500">{teamLabel}</p>}
       <div className="mb-6" />
-      <StatsTable columns={multiTeam ? columns : columns.filter((c) => c.key !== 'team_name')} rows={stats} />
+      <StatsTable columns={multiTeam ? columns : columns.filter((c) => c.key !== 'team_name')} rows={stats} footerRow={overallRow} />
 
       {gameLog.length > 0 && (
         <>
