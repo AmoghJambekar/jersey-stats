@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { fetchTeam, fetchTeamJerseyStats, fetchTeamGameLog, fetchTeamStandings, fetchTeamDepthChart } from '../api';
 import StatsTable from '../components/StatsTable';
 import ColorDots from '../components/ColorDots';
-import { TEAM_COLORS, TEAM_NICKNAMES, COACHES, teamLogoUrl, headshotUrl, darkenHex } from '../data/teamData';
+import { TEAM_COLORS, TEAM_NICKNAMES, teamLogoUrl, headshotUrl, darkenHex } from '../data/teamData';
 
 // --- Jersey stats columns ---
 const jerseyStatCols = [
