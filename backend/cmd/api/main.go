@@ -23,7 +23,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	router := httpapi.NewRouter(pool)
+	router := httpapi.NewRouter(pool, cfg)
 
 	log.Printf("starting JerseyStats API on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {

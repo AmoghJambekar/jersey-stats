@@ -344,6 +344,10 @@ func SearchPlayers(q *gen.Queries) http.HandlerFunc {
 			writeJSON(w, http.StatusOK, []searchResultResp{})
 			return
 		}
+		if len(query) > 100 {
+			http.Error(w, "query too long", http.StatusBadRequest)
+			return
+		}
 
 		rows, err := q.SearchPlayers(r.Context(), "%"+query+"%")
 		if err != nil {
