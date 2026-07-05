@@ -18,7 +18,7 @@ export default function Layout() {
           </div>
         </nav>
       )}
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className={`mx-auto px-4 py-6 ${isHome ? 'max-w-[84rem]' : 'max-w-6xl'}`}>
         <Outlet />
       </main>
     </div>

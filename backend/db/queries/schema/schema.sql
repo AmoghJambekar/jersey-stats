@@ -4,9 +4,12 @@
 -- This file is read by sqlc to generate Go types.
 
 CREATE TABLE teams (
-  id    TEXT PRIMARY KEY,  -- team abbreviation, e.g. "NYK"
-  name  TEXT NOT NULL,     -- e.g. "New York Knicks"
-  city  TEXT NOT NULL      -- e.g. "New York"
+  id         TEXT PRIMARY KEY,  -- team abbreviation, e.g. "NYK"
+  name       TEXT NOT NULL,     -- e.g. "New York Knicks"
+  city       TEXT NOT NULL,     -- e.g. "New York"
+  nba_id     INT,               -- numeric NBA ID for CDN URLs
+  conference TEXT,              -- "East" or "West"
+  division   TEXT               -- e.g. "Atlantic", "Pacific"
 );
 
 CREATE TABLE jersey_editions (

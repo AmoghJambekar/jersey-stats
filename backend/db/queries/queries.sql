@@ -2,10 +2,10 @@
 -- See docs/prd.md REQ-003 for the aggregation requirements.
 
 -- name: ListTeams :many
-SELECT id, name, city FROM teams ORDER BY name;
+SELECT id, name, city, nba_id, conference, division FROM teams ORDER BY conference, division, name;
 
 -- name: GetTeam :one
-SELECT id, name, city FROM teams WHERE id = $1;
+SELECT id, name, city, nba_id, conference, division FROM teams WHERE id = $1;
 
 -- name: ListJerseyEditions :many
 SELECT id, team_id, edition_name, color_tags, description, season

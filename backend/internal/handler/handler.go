@@ -49,16 +49,22 @@ func toText(t pgtype.Text) string {
 // --- Response types ---
 
 type teamResp struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	City string `json:"city"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	City       string `json:"city"`
+	NbaID      int    `json:"nba_id"`
+	Conference string `json:"conference"`
+	Division   string `json:"division"`
 }
 
 type teamDetailResp struct {
-	ID      string       `json:"id"`
-	Name    string       `json:"name"`
-	City    string       `json:"city"`
-	Jerseys []jerseyResp `json:"jerseys"`
+	ID         string       `json:"id"`
+	Name       string       `json:"name"`
+	City       string       `json:"city"`
+	NbaID      int          `json:"nba_id"`
+	Conference string       `json:"conference"`
+	Division   string       `json:"division"`
+	Jerseys    []jerseyResp `json:"jerseys"`
 }
 
 type jerseyResp struct {
@@ -176,7 +182,14 @@ func ListTeams(q *gen.Queries) http.HandlerFunc {
 		}
 		out := make([]teamResp, len(teams))
 		for i, t := range teams {
-			out[i] = teamResp{ID: t.ID, Name: t.Name, City: t.City}
+			out[i] = teamResp{
+				ID:         t.ID,
+				Name:       t.Name,
+				City:       t.City,
+				NbaID:      toInt(t.NbaID),
+				Conference: toText(t.Conference),
+				Division:   toText(t.Division),
+			}
 		}
 		writeJSON(w, http.StatusOK, out)
 	}
@@ -217,10 +230,13 @@ func GetTeam(q *gen.Queries) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, teamDetailResp{
-			ID:      team.ID,
-			Name:    team.Name,
-			City:    team.City,
-			Jerseys: jerseys,
+			ID:         team.ID,
+			Name:       team.Name,
+			City:       team.City,
+			NbaID:      toInt(team.NbaID),
+			Conference: toText(team.Conference),
+			Division:   toText(team.Division),
+			Jerseys:    jerseys,
 		})
 	}
 }
