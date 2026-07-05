@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { fetchPlayerTeams, fetchPlayerBio, fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
+import ColorDots from '../components/ColorDots';
 
 // --- Team colors (primary = banner, secondary = accent) ---
 const TEAM_COLORS = {
@@ -91,9 +92,19 @@ function formatDraft(bio) {
   return `${bio.draft_year}: R${bio.draft_round}, Pk ${bio.draft_number}${team}`;
 }
 
-// --- Stats table columns ---
-const jerseyStatsColumns = [
-  { key: 'team_name', label: 'Team' },
+const TEAM_NICKNAMES = {
+  ATL: 'Hawks', BOS: 'Celtics', BKN: 'Nets', CHA: 'Hornets',
+  CHI: 'Bulls', CLE: 'Cavaliers', DAL: 'Mavericks', DEN: 'Nuggets',
+  DET: 'Pistons', GSW: 'Warriors', HOU: 'Rockets', IND: 'Pacers',
+  LAC: 'Clippers', LAL: 'Lakers', MEM: 'Grizzlies', MIA: 'Heat',
+  MIL: 'Bucks', MIN: 'Timberwolves', NOP: 'Pelicans', NYK: 'Knicks',
+  OKC: 'Thunder', ORL: 'Magic', PHI: '76ers', PHX: 'Suns',
+  POR: 'Trail Blazers', SAC: 'Kings', SAS: 'Spurs', TOR: 'Raptors',
+  UTA: 'Jazz', WAS: 'Wizards',
+};
+
+// --- Stats table columns (excluding team — handled via rowspan) ---
+const statCols = [
   { key: 'edition_name', label: 'Edition' },
   { key: 'color_tags', label: 'Colors' },
   { key: 'games_played', label: 'GP' },
@@ -343,11 +354,100 @@ export default function PlayerPage() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {activeTab === 'stats' && (
           <>
-            <StatsTable
-              columns={multiTeam ? jerseyStatsColumns : jerseyStatsColumns.filter((c) => c.key !== 'team_name')}
-              rows={stats}
-              footerRow={overallRow}
-            />
+            {stats.length === 0 ? (
+              <p className="text-gray-500">No stats available.</p>
+            ) : (() => {
+              // Group stats by team, ordered by teams array, GP desc within each group
+              const teamOrder = teams.map((t) => t.team_id);
+              const grouped = {};
+              for (const row of stats) {
+                (grouped[row.team_id] ??= []).push(row);
+              }
+              for (const tid of Object.keys(grouped)) {
+                grouped[tid].sort((a, b) => b.games_played - a.games_played);
+              }
+              const orderedGroups = teamOrder
+                .filter((tid) => grouped[tid])
+                .map((tid) => ({ teamId: tid, rows: grouped[tid] }));
+              // For single-team players, flatten into one group without team column
+              const showTeamCol = multiTeam;
+              const totalCols = (showTeamCol ? 1 : 0) + statCols.length;
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                      <tr>
+                        {showTeamCol && <th className="px-4 py-3 font-medium">Team</th>}
+                        {statCols.map((col) => (
+                          <th key={col.key} className="px-4 py-3 font-medium">{col.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {orderedGroups.map((group) =>
+                        group.rows.map((row, i) => (
+                          <tr key={`${group.teamId}-${i}`} className="hover:bg-gray-50">
+                            {showTeamCol && i === 0 && (
+                              <td
+                                rowSpan={group.rows.length}
+                                className="px-4 py-3 align-middle border-r border-gray-200"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={teamLogoUrl(group.teamId)}
+                                    alt={TEAM_NICKNAMES[group.teamId]}
+                                    className="w-6 h-6 object-contain shrink-0"
+                                  />
+                                  <span className="font-medium text-gray-900 whitespace-nowrap">
+                                    {TEAM_NICKNAMES[group.teamId] || group.teamId}
+                                  </span>
+                                </div>
+                              </td>
+                            )}
+                            {statCols.map((col) => (
+                              <td key={col.key} className="px-4 py-3">
+                                {col.key === 'color_tags' ? (
+                                  <ColorDots colors={row[col.key]} />
+                                ) : col.format ? (
+                                  col.format(row[col.key], row)
+                                ) : (
+                                  row[col.key]
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                    {overallRow && (
+                      <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+                        <tr>
+                          {showTeamCol && <td className="px-4 py-3" />}
+                          {statCols.map((col, ci) => {
+                            const val = overallRow[col.key];
+                            // Merge edition + colors into one "Overall" cell
+                            if (col.key === 'edition_name') {
+                              return (
+                                <td key={col.key} className="px-4 py-3" colSpan={2}>Overall</td>
+                              );
+                            }
+                            if (col.key === 'color_tags') return null;
+                            return (
+                              <td key={col.key} className="px-4 py-3">
+                                {col.format && val != null && typeof val === 'number'
+                                  ? col.format(val, overallRow)
+                                  : val ?? ''}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              );
+            })()}
           </>
         )}
 
