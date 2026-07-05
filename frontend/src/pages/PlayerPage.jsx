@@ -281,7 +281,7 @@ export default function PlayerPage() {
         <div className="max-w-6xl mx-auto px-4 flex w-full">
           {/* Left: Season averages (PPG / RPG / APG) */}
           <div
-            className="flex divide-x divide-white/20 shrink-0"
+            className="flex items-center divide-x divide-white/20 shrink-0"
             style={{ backgroundColor: darkenHex(colors.primary, 0.45) }}
           >
             {[
