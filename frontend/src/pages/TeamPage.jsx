@@ -68,34 +68,169 @@ const gameLogColumns = [
 ];
 
 // --- Depth chart helpers ---
-function parseHeightInches(h) {
-  if (!h) return 0;
-  const m = h.match(/(\d+)-(\d+)/);
-  if (!m) return 0;
-  return parseInt(m[1]) * 12 + parseInt(m[2]);
-}
 
-function assignPosition(pos, height) {
-  const inches = parseHeightInches(height);
-  if (!pos) return 'SG';
-  const p = pos.toLowerCase();
-  if (p === 'center' || p === 'c') return 'C';
-  if (p === 'guard' || p === 'g') return inches < 75 ? 'PG' : 'SG'; // 6'3" = 75"
-  if (p === 'forward' || p === 'f') return inches < 80 ? 'SF' : 'PF'; // 6'8" = 80"
-  if (p.includes('guard') && p.includes('forward')) return 'SG';
-  if (p.includes('forward') && p.includes('center')) return 'PF';
-  if (p.includes('guard')) return inches < 75 ? 'PG' : 'SG';
-  if (p.includes('forward')) return inches < 80 ? 'SF' : 'PF';
-  return 'SG';
-}
+// Hardcoded position assignments for 2025-26 season.
+// Keyed by player name (as returned by API). Players not listed fall back to heuristic.
+const POSITION_MAP = {
+  // ATL
+  'Trae Young': 'PG', 'Nickeil Alexander-Walker': 'PG', 'Dyson Daniels': 'SG',
+  'Vít Krejčí': 'SG', 'Jalen Johnson': 'SF', 'Zaccharie Risacher': 'SF',
+  'Jonathan Kuminga': 'PF', 'Onyeka Okongwu': 'PF', 'Kristaps Porziņģis': 'C',
+  'CJ McCollum': 'SG',
+  // BOS
+  'Payton Pritchard': 'PG', 'Derrick White': 'SG', 'Jaylen Brown': 'SF',
+  'Jayson Tatum': 'PF', 'Neemias Queta': 'C', 'Anfernee Simons': 'PG',
+  'Sam Hauser': 'SF', 'Nikola Vučević': 'C',
+  // BKN
+  'Nolan Traore': 'PG', 'Malachi Smith': 'PG', 'Egor Dëmin': 'SG',
+  'Drake Powell': 'SG', 'Ziaire Williams': 'SF', 'Michael Porter Jr.': 'PF',
+  'Noah Clowney': 'PF', 'Nic Claxton': 'C', 'Danny Wolf': 'C',
+  'Terance Mann': 'SF',
+  // CHA
+  'LaMelo Ball': 'PG', 'Collin Sexton': 'PG', 'Kon Knueppel': 'SG',
+  'Sion James': 'SG', 'Brandon Miller': 'SF', 'Miles Bridges': 'PF',
+  'Grant Williams': 'PF', 'Moussa Diabaté': 'C', 'Ryan Kalkbrenner': 'C',
+  'Coby White': 'SG',
+  // CHI
+  'Josh Giddey': 'PG', 'Tre Jones': 'PG', 'Ayo Dosunmu': 'SG',
+  'Isaac Okoro': 'SF', 'Matas Buzelis': 'PF', 'Nick Richards': 'C',
+  // DAL
+  'Brandon Williams': 'PG', 'Max Christie': 'SG', 'Klay Thompson': 'SG',
+  'Cooper Flagg': 'SF', 'P.J. Washington': 'PF', 'Naji Marshall': 'PF',
+  'Anthony Davis': 'C', 'Daniel Gafford': 'C', 'Khris Middleton': 'SF',
+  'Marvin Bagley III': 'PF',
+  // DEN
+  'Jamal Murray': 'PG', 'Jalen Pickett': 'PG', 'Christian Braun': 'SG',
+  'Tim Hardaway Jr.': 'SG', 'Cameron Johnson': 'SF', 'Aaron Gordon': 'PF',
+  'Peyton Watson': 'SF', 'Nikola Jokić': 'C', 'Bruce Brown': 'SG',
+  'Spencer Jones': 'SF',
+  // DET
+  'Cade Cunningham': 'PG', 'Daniss Jenkins': 'PG', 'Ausar Thompson': 'SG',
+  'Caris LeVert': 'SG', 'Duncan Robinson': 'SF', 'Tobias Harris': 'PF',
+  'Isaiah Stewart': 'PF', 'Jalen Duren': 'C',
+  // GSW
+  'Stephen Curry': 'PG', "De'Anthony Melton": 'PG', 'Brandin Podziemski': 'SG',
+  'Moses Moody': 'SG', 'Jimmy Butler III': 'SF', 'Draymond Green': 'PF',
+  'Kristaps Porziņģis': 'C', 'Kevon Looney': 'C',
+  // HOU
+  'Reed Sheppard': 'PG', 'Aaron Holiday': 'PG', 'Amen Thompson': 'SG',
+  'Kevin Durant': 'SF', 'Jabari Smith Jr.': 'PF', 'Tari Eason': 'PF',
+  'Alperen Sengun': 'C', 'Steven Adams': 'C', 'Josh Okogie': 'SG',
+  'Dorian Finney-Smith': 'SF',
+  // IND
+  'Andrew Nembhard': 'PG', 'Ben Sheppard': 'PG', 'Bennedict Mathurin': 'SG',
+  'Aaron Nesmith': 'SG', 'Pascal Siakam': 'SF', 'Jarace Walker': 'PF',
+  'Kobe Brown': 'PF', 'Ivica Zubac': 'C', 'Jay Huff': 'C',
+  'Jalen Slawson': 'SF',
+  // LAC
+  'Darius Garland': 'PG', 'Kris Dunn': 'PG', 'James Harden': 'SG',
+  'Jordan Miller': 'SG', 'Kawhi Leonard': 'SF', 'Derrick Jones Jr.': 'SF',
+  'John Collins': 'PF', 'Bennedict Mathurin': 'SG', 'Ivica Zubac': 'C',
+  'Brook Lopez': 'C',
+  // LAL
+  'Marcus Smart': 'PG', 'Austin Reaves': 'SG', 'Luka Dončić': 'SF',
+  'LeBron James': 'PF', 'Deandre Ayton': 'C', 'Luke Kennard': 'SG',
+  'Rui Hachimura': 'PF', 'Jake LaRavia': 'SF',
+  // MEM
+  'Ja Morant': 'PG', 'Walter Clayton Jr.': 'PG', 'Rayan Rupert': 'SG',
+  'Cedric Coward': 'SG', 'Jaylen Wells': 'SF', 'Jaren Jackson Jr.': 'PF',
+  'Taylor Hendricks': 'PF', 'Zach Edey': 'C', 'Santi Aldama': 'C',
+  'Cam Spencer': 'PG',
+  // MIA
+  'Davion Mitchell': 'PG', 'Tyler Herro': 'SG', 'Norman Powell': 'SG',
+  'Andrew Wiggins': 'SF', 'Jaime Jaquez Jr.': 'SF', 'Bam Adebayo': 'PF',
+  'Pelle Larsson': 'SG', "Kel'el Ware": 'C',
+  // MIL
+  'Ryan Rollins': 'PG', 'Kevin Porter Jr.': 'SG', 'AJ Green': 'SG',
+  'Giannis Antetokounmpo': 'SF', 'Kyle Kuzma': 'PF', 'Bobby Portis': 'PF',
+  'Myles Turner': 'C', 'Ousmane Dieng': 'SF', 'Cormac Ryan': 'SG',
+  'Taurean Prince': 'SF',
+  // MIN
+  'Mike Conley': 'PG', 'Donte DiVincenzo': 'SG', 'Anthony Edwards': 'SG',
+  'Jaden McDaniels': 'SF', 'Julius Randle': 'PF', 'Rudy Gobert': 'C',
+  'Naz Reid': 'C', 'Bones Hyland': 'PG', 'Kyle Anderson': 'SF',
+  // NOP
+  'Dejounte Murray': 'PG', 'Jeremiah Fears': 'PG', 'Jordan Poole': 'SG',
+  'Saddiq Bey': 'SG', 'Trey Murphy III': 'SF', 'Zion Williamson': 'PF',
+  'Herbert Jones': 'SF', 'Derik Queen': 'C', 'Jose Alvarado': 'PG',
+  'Bryce McGowens': 'SG',
+  // NYK
+  'Jalen Brunson': 'PG', 'Miles McBride': 'PG', 'Mikal Bridges': 'SG',
+  'Landry Shamet': 'SG', 'OG Anunoby': 'SF', 'Josh Hart': 'SF',
+  'Karl-Anthony Towns': 'PF', 'Guerschon Yabusele': 'PF', 'Mitchell Robinson': 'C',
+  'Ariel Hukporti': 'C', 'Tyler Kolek': 'PG', 'Jordan Clarkson': 'SG',
+  'Jeremy Sochan': 'PF', 'Mohamed Diawara': 'SF',
+  // OKC
+  'Cason Wallace': 'PG', 'Shai Gilgeous-Alexander': 'SG', 'Jalen Williams': 'SF',
+  'Ajay Mitchell': 'PG', 'Luguentz Dort': 'SG', 'Chet Holmgren': 'PF',
+  'Isaiah Hartenstein': 'C', 'Isaiah Joe': 'SG',
+  // ORL
+  'Anthony Black': 'PG', 'Jalen Suggs': 'PG', 'Desmond Bane': 'SG',
+  'Franz Wagner': 'SF', 'Paolo Banchero': 'PF', 'Wendell Carter Jr.': 'C',
+  'Tristan da Silva': 'SF', 'Goga Bitadze': 'C', 'Tyus Jones': 'PG',
+  'Jevon Carter': 'SG',
+  // PHI
+  'Tyrese Maxey': 'PG', 'Jared McCain': 'PG', 'VJ Edgecombe': 'SG',
+  'Quentin Grimes': 'SG', 'Paul George': 'SF', 'Kelly Oubre Jr.': 'SF',
+  'Joel Embiid': 'C', 'Andre Drummond': 'C', 'Dominick Barlow': 'PF',
+  'Adem Bona': 'PF',
+  // PHX
+  'Collin Gillespie': 'PG', 'Jordan Goodwin': 'PG', 'Devin Booker': 'SG',
+  'Grayson Allen': 'SG', 'Dillon Brooks': 'SF', 'Jalen Green': 'SG',
+  'Royce O\'Neale': 'PF', 'Oso Ighodaro': 'PF', 'Mark Williams': 'C',
+  'Ryan Dunn': 'SF',
+  // POR
+  'Scoot Henderson': 'PG', 'Caleb Love': 'PG', 'Shaedon Sharpe': 'SG',
+  'Jrue Holiday': 'SG', 'Deni Avdija': 'SF', 'Toumani Camara': 'SF',
+  'Jerami Grant': 'PF', 'Kris Murray': 'PF', 'Donovan Clingan': 'C',
+  'Sidy Cissoko': 'SG',
+  // SAC
+  'Dennis Schröder': 'PG', 'Russell Westbrook': 'PG', 'Zach LaVine': 'SG',
+  'DeMar DeRozan': 'SF', 'Keegan Murray': 'PF', 'Domantas Sabonis': 'C',
+  'Maxime Raynaud': 'C', 'Precious Achiuwa': 'PF', 'Daeqwon Plowden': 'SG',
+  'Nique Clifford': 'SG',
+  // SAS
+  "De'Aaron Fox": 'PG', 'Dylan Harper': 'PG', 'Devin Vassell': 'SG',
+  'Stephon Castle': 'SG', 'Julian Champagnie': 'SF', 'Harrison Barnes': 'SF',
+  'Victor Wembanyama': 'PF', 'Keldon Johnson': 'SF', 'Luke Kornet': 'C',
+  // TOR
+  'Immanuel Quickley': 'PG', 'Jamal Shead': 'PG', 'RJ Barrett': 'SG',
+  "Ja'Kobe Walter": 'SG', 'Brandon Ingram': 'SF', 'Scottie Barnes': 'PF',
+  'Jakob Poeltl': 'C', 'Ochai Agbaji': 'SG', 'Collin Murray-Boyles': 'PF',
+  'Sandro Mamukelashvili': 'C',
+  // UTA
+  'Keyonte George': 'PG', 'Isaiah Collier': 'PG', 'Bez Mbeng': 'SG',
+  'John Konchar': 'SG', 'Lauri Markkanen': 'SF', 'Cody Williams': 'SF',
+  'Ace Bailey': 'PF', 'Brice Sensabaugh': 'PF', 'Walker Kessler': 'C',
+  'Jusuf Nurkić': 'C',
+  // WAS
+  'Bub Carrington': 'PG', 'Tre Johnson': 'SG', 'Bilal Coulibaly': 'SF',
+  'Kyshawn George': 'SF', 'Julian Reese': 'PF', 'Leaky Black': 'PF',
+  'Alex Sarr': 'C', 'Will Riley': 'SF',
+};
 
 const POSITION_ORDER = ['PG', 'SG', 'SF', 'PF', 'C'];
 
 function buildDepthChart(players) {
   const byPos = { PG: [], SG: [], SF: [], PF: [], C: [] };
+  const placed = new Set();
+  // First pass: place players with hardcoded positions
   for (const p of players) {
-    const pos = assignPosition(p.position, p.height);
-    byPos[pos].push(p);
+    const override = POSITION_MAP[p.player_name];
+    if (override) {
+      byPos[override].push(p);
+      placed.add(p.player_id);
+    }
+  }
+  // Second pass: fallback for unlisted players based on NBA position string
+  for (const p of players) {
+    if (placed.has(p.player_id)) continue;
+    const pos = p.position?.toLowerCase() || '';
+    let slot = 'SG';
+    if (pos.includes('center')) slot = 'C';
+    else if (pos.includes('forward') && !pos.includes('guard')) slot = 'PF';
+    else if (pos.includes('guard') && !pos.includes('forward')) slot = 'SG';
+    byPos[slot].push(p);
   }
   // Already sorted by avg_min DESC from API
   return byPos;
@@ -263,7 +398,12 @@ export default function TeamPage() {
                     {[0, 1, 2].map((idx) => {
                       const p = top3[idx];
                       if (!p) return <td key={idx} className="px-2 py-2 text-center text-gray-300">—</td>;
-                      const lastName = p.player_name.split(' ').pop();
+                      const parts = p.player_name.split(' ');
+                      const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+                      const lastPart = parts[parts.length - 1];
+                      const lastName = suffixes.includes(lastPart) && parts.length > 2
+                        ? `${parts[parts.length - 2]} ${lastPart}`
+                        : lastPart;
                       return (
                         <td key={idx} className="px-2 py-2 text-center">
                           <Link to={`/players/${p.player_id}`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
@@ -273,7 +413,7 @@ export default function TeamPage() {
                               className="w-8 h-8 rounded-full object-cover bg-gray-100"
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                            <span className="text-[10px] text-gray-700 leading-tight truncate max-w-[60px]">{lastName}</span>
+                            <span className="text-[10px] text-gray-700 leading-tight truncate max-w-[80px]">{lastName}</span>
                           </Link>
                         </td>
                       );
