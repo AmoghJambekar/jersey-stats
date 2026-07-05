@@ -193,6 +193,7 @@ type standingsRowResp struct {
 	Wins     int    `json:"wins"`
 	Losses   int    `json:"losses"`
 	Diff     int    `json:"diff"`
+	Form     string `json:"form"`
 }
 
 type depthChartPlayerResp struct {
@@ -628,6 +629,19 @@ func GetTeamStandings(q *gen.Queries) http.HandlerFunc {
 			return
 		}
 
+		formRows, err := q.GetConferenceRecentForm(r.Context(), gen.GetConferenceRecentFormParams{
+			Conference: team.Conference,
+			Season:     defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		formMap := map[string]string{}
+		for _, f := range formRows {
+			formMap[f.TeamID] = string(f.Form)
+		}
+
 		out := make([]standingsRowResp, len(rows))
 		for i, row := range rows {
 			diff := 0
@@ -649,6 +663,7 @@ func GetTeamStandings(q *gen.Queries) http.HandlerFunc {
 				Wins:     int(row.Wins),
 				Losses:   int(row.Losses),
 				Diff:     diff,
+				Form:     formMap[row.TeamID],
 			}
 		}
 		writeJSON(w, http.StatusOK, out)

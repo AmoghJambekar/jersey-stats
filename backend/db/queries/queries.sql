@@ -270,6 +270,23 @@ WHERE t.conference = $1 AND g.season = $2 AND g.season_type = 'Regular Season'
 GROUP BY t.id, t.name
 ORDER BY wins DESC, point_diff DESC;
 
+-- name: GetConferenceRecentForm :many
+WITH ranked_games AS (
+  SELECT t.id AS team_id,
+    CASE WHEN (g.home_team = t.id AND g.home_score > g.away_score)
+         OR (g.away_team = t.id AND g.away_score > g.home_score)
+    THEN 'W' ELSE 'L' END AS result,
+    ROW_NUMBER() OVER (PARTITION BY t.id ORDER BY g.game_date DESC) AS rn
+  FROM teams t
+  JOIN games g ON (g.home_team = t.id OR g.away_team = t.id)
+  WHERE t.conference = $1 AND g.season = $2 AND g.season_type = 'Regular Season'
+    AND g.home_score IS NOT NULL
+)
+SELECT team_id, STRING_AGG(result, '' ORDER BY rn) AS form
+FROM ranked_games
+WHERE rn <= 5
+GROUP BY team_id;
+
 -- name: GetTeamDepthChart :many
 SELECT pgl.player_id, MAX(pgl.player_name) AS player_name,
   COALESCE(pb.position, '') AS position,

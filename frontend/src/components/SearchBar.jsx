@@ -112,7 +112,7 @@ export default function SearchBar({ compact = false }) {
         className={`w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${compact ? 'px-3 py-1.5 text-sm' : 'px-4 py-3 text-lg shadow-sm'}`}
       />
       {isOpen && allItems.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
+        <ul className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
           {teamResults.length > 0 && (
             <>
               {teamResults.map((team) => {

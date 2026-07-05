@@ -315,12 +315,8 @@ export default function TeamPage() {
   // Depth chart data
   const depthByPos = buildDepthChart(depthChart);
 
-  // Mini standings: 2 above + current + 2 below
-  const currentIdx = standings.findIndex((s) => s.team_id === teamId);
-  const firstWins = standings.length > 0 ? standings[0].wins : 0;
-  const miniStart = Math.max(0, Math.min(currentIdx - 2, standings.length - 5));
-  const miniEnd = Math.min(standings.length, miniStart + 5);
-  const miniStandings = standings.slice(miniStart, miniEnd);
+  // Top 10 standings
+  const miniStandings = standings.slice(0, 10);
 
   const tabs = [
     { id: 'stats', label: 'Stats' },
@@ -366,15 +362,17 @@ export default function TeamPage() {
             <h1 className="text-4xl font-bold text-white tracking-wide">
               {team?.name}
             </h1>
-            <p className="text-white/70 text-sm mt-1">
-              {COACHES[teamId] ? `Coach: ${COACHES[teamId]}` : ''}
-            </p>
-            <div className="flex items-center gap-4 mt-3">
-              <span className="text-white text-xl font-semibold">{wins}-{losses}</span>
+            <div className="flex items-center gap-3 mt-1 text-sm text-white/70">
+              {COACHES[teamId] && <span>Coach: {COACHES[teamId]}</span>}
+              <span className="text-white/40">|</span>
+              <span className="text-white text-lg font-semibold">{wins}-{losses}</span>
               {teamRank > 0 && (
-                <span className="text-white/70 text-sm">
-                  {teamRank}{teamRank === 1 ? 'st' : teamRank === 2 ? 'nd' : teamRank === 3 ? 'rd' : 'th'} {confLabel}
-                </span>
+                <>
+                  <span className="text-white/40">|</span>
+                  <span>
+                    {teamRank}{teamRank === 1 ? 'st' : teamRank === 2 ? 'nd' : teamRank === 3 ? 'rd' : 'th'} {confLabel}
+                  </span>
+                </>
               )}
             </div>
           </div>
@@ -476,17 +474,15 @@ export default function TeamPage() {
                       <th className="px-2 py-2 text-center font-medium">W</th>
                       <th className="px-2 py-2 text-center font-medium">L</th>
                       <th className="px-2 py-2 text-center font-medium">PCT</th>
-                      <th className="px-2 py-2 text-center font-medium">GB</th>
-                      <th className="px-2 py-2 text-center font-medium">DIFF</th>
+                      <th className="px-2 py-2 text-center font-medium">STRK</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {miniStandings.map((s) => {
-                      const rank = standings.indexOf(s) + 1;
+                    {miniStandings.map((s, idx) => {
+                      const rank = idx + 1;
                       const pct = (s.wins + s.losses) > 0 ? (s.wins / (s.wins + s.losses)).toFixed(3) : '.000';
-                      const gb = firstWins === s.wins ? '—' : ((firstWins - s.wins) / 1).toFixed(0);
                       const isCurrent = s.team_id === teamId;
-                      const diffStr = s.diff > 0 ? `+${s.diff}` : `${s.diff}`;
+                      const form = s.form || '';
                       return (
                         <tr
                           key={s.team_id}
@@ -505,9 +501,12 @@ export default function TeamPage() {
                           <td className="px-2 py-1.5 text-center">{s.wins}</td>
                           <td className="px-2 py-1.5 text-center">{s.losses}</td>
                           <td className="px-2 py-1.5 text-center">{pct}</td>
-                          <td className="px-2 py-1.5 text-center">{gb}</td>
-                          <td className={`px-2 py-1.5 text-center ${s.diff > 0 ? 'text-green-600' : s.diff < 0 ? 'text-red-500' : ''}`}>
-                            {diffStr}
+                          <td className="px-2 py-1.5 text-center">
+                            <span className="tracking-wide font-mono">
+                              {form.split('').map((ch, i) => (
+                                <span key={i} className={ch === 'W' ? 'text-green-600' : 'text-red-500'}>{ch}</span>
+                              ))}
+                            </span>
                           </td>
                         </tr>
                       );
