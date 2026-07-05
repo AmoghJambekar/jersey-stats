@@ -137,6 +137,7 @@ type playerBioResp struct {
 	DraftYear    int    `json:"draft_year"`
 	DraftRound   int    `json:"draft_round"`
 	DraftNumber  int    `json:"draft_number"`
+	DraftTeam    string `json:"draft_team"`
 	YearsExp     int    `json:"years_exp"`
 }
 
@@ -364,6 +365,7 @@ func GetPlayerBio(q *gen.Queries) http.HandlerFunc {
 			DraftYear:    toInt(bio.DraftYear),
 			DraftRound:   toInt(bio.DraftRound),
 			DraftNumber:  toInt(bio.DraftNumber),
+			DraftTeam:    toText(bio.DraftTeam),
 			YearsExp:     toInt(bio.YearsExp),
 		})
 	}

@@ -218,14 +218,14 @@ ORDER BY g.game_date DESC;
 
 -- name: GetPlayerBio :one
 SELECT player_id, jersey_number, position, height, weight, birth_date,
-       country, last_attended, draft_year, draft_round, draft_number, years_exp
+       country, last_attended, draft_year, draft_round, draft_number, draft_team, years_exp
 FROM player_bios
 WHERE player_id = $1;
 
 -- name: UpsertPlayerBio :exec
 INSERT INTO player_bios (player_id, jersey_number, position, height, weight, birth_date,
-                          country, last_attended, draft_year, draft_round, draft_number, years_exp)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                          country, last_attended, draft_year, draft_round, draft_number, draft_team, years_exp)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 ON CONFLICT (player_id) DO UPDATE
 SET jersey_number = EXCLUDED.jersey_number,
     position      = EXCLUDED.position,
@@ -237,7 +237,14 @@ SET jersey_number = EXCLUDED.jersey_number,
     draft_year    = EXCLUDED.draft_year,
     draft_round   = EXCLUDED.draft_round,
     draft_number  = EXCLUDED.draft_number,
+    draft_team    = EXCLUDED.draft_team,
     years_exp     = EXCLUDED.years_exp;
+
+-- name: UpdateDraftTeam :exec
+UPDATE player_bios SET draft_team = $2 WHERE player_id = $1;
+
+-- name: GetDistinctDraftYears :many
+SELECT DISTINCT draft_year FROM player_bios WHERE draft_year IS NOT NULL ORDER BY draft_year;
 
 -- name: GetDistinctPlayerIDs :many
 SELECT DISTINCT player_id FROM player_game_logs ORDER BY player_id;

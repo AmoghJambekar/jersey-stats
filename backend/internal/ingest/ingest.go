@@ -276,6 +276,7 @@ func (ing *Ingester) IngestPlayerBios(ctx context.Context) error {
 			DraftYear:    pgInt4OrNull(bio.DraftYear),
 			DraftRound:   pgInt4OrNull(bio.DraftRound),
 			DraftNumber:  pgInt4OrNull(bio.DraftNumber),
+			DraftTeam:    pgtype.Text{Valid: false},
 			YearsExp:     pgInt4OrNull(bio.SeasonExp),
 		})
 		if err != nil {
@@ -291,6 +292,44 @@ func (ing *Ingester) IngestPlayerBios(ctx context.Context) error {
 	}
 
 	ing.log.Info("player bio ingestion complete", "upserted", upserted, "failed", failed)
+	return nil
+}
+
+// IngestDraftTeams fetches draft history for each unique draft year in player_bios
+// and updates the draft_team column.
+func (ing *Ingester) IngestDraftTeams(ctx context.Context) error {
+	years, err := ing.queries.GetDistinctDraftYears(ctx)
+	if err != nil {
+		return fmt.Errorf("get distinct draft years: %w", err)
+	}
+	ing.log.Info("fetching draft history", "years", len(years))
+
+	updated := 0
+	for _, y := range years {
+		if !y.Valid {
+			continue
+		}
+		year := int(y.Int32)
+		picks, err := ing.nba.GetDraftHistory(ctx, year)
+		if err != nil {
+			ing.log.Error("failed to fetch draft history", "year", year, "err", err)
+			continue
+		}
+
+		for _, pick := range picks {
+			err := ing.queries.UpdateDraftTeam(ctx, gen.UpdateDraftTeamParams{
+				PlayerID:  strconv.Itoa(pick.PlayerID),
+				DraftTeam: pgText(pick.TeamAbbr),
+			})
+			if err != nil {
+				continue // player might not be in our DB
+			}
+			updated++
+		}
+		ing.log.Info("processed draft year", "year", year, "picks", len(picks))
+	}
+
+	ing.log.Info("draft team ingestion complete", "updated", updated)
 	return nil
 }
 

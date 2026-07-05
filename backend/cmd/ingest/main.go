@@ -32,6 +32,7 @@ func main() {
 	gamesOnly := flag.Bool("games-only", false, "only ingest games, skip player logs")
 	playersOnly := flag.Bool("players-only", false, "only ingest player logs, skip games")
 	biosOnly := flag.Bool("bios-only", false, "only ingest player bios, skip games and player logs")
+	draftTeams := flag.Bool("draft-teams", false, "only ingest draft team data for existing bios")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -67,6 +68,16 @@ func main() {
 	queries := dbgen.New(pool)
 	client := nba.NewClient(logger)
 	ing := ingest.New(client, queries, logger)
+
+	if *draftTeams {
+		logger.Info("starting draft team ingestion")
+		if err := ing.IngestDraftTeams(ctx); err != nil {
+			logger.Error("draft team ingestion failed", "err", err)
+			os.Exit(1)
+		}
+		logger.Info("ingest complete")
+		return
+	}
 
 	if *biosOnly {
 		logger.Info("starting player bio ingestion")

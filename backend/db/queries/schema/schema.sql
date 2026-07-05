@@ -55,6 +55,7 @@ CREATE TABLE player_bios (
   draft_year    INT,
   draft_round   INT,
   draft_number  INT,
+  draft_team    TEXT,
   years_exp     INT
 );
 

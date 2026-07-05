@@ -87,7 +87,8 @@ function formatBirthDate(dateStr) {
 
 function formatDraft(bio) {
   if (!bio.draft_year || bio.draft_year === 0) return 'Undrafted';
-  return `${bio.draft_year} R${bio.draft_round} Pick ${bio.draft_number}`;
+  const team = bio.draft_team ? ` (${bio.draft_team})` : '';
+  return `${bio.draft_year}: R${bio.draft_round}, Pk ${bio.draft_number}${team}`;
 }
 
 // --- Stats table columns ---

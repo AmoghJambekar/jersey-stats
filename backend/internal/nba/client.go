@@ -391,6 +391,41 @@ func (c *Client) GetCommonPlayerInfo(ctx context.Context, playerID int) (*Player
 	return bio, nil
 }
 
+// DraftPick holds one row from the drafthistory endpoint.
+type DraftPick struct {
+	PlayerID int
+	TeamAbbr string // team that drafted the player
+}
+
+// GetDraftHistory fetches all picks for a given draft year.
+func (c *Client) GetDraftHistory(ctx context.Context, season int) ([]DraftPick, error) {
+	resp, err := c.do(ctx, "drafthistory", url.Values{
+		"Season":  {strconv.Itoa(season)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.ResultSets) == 0 {
+		return nil, fmt.Errorf("drafthistory: empty resultSets for season %d", season)
+	}
+
+	rs := resp.ResultSets[0]
+	idx := colIndex(rs.Headers)
+	var picks []DraftPick
+	for _, row := range rs.RowSet {
+		pid := getInt(row, idx, "PERSON_ID")
+		teamAbbr := getStr(row, idx, "TEAM_ABBREVIATION")
+		if pid == 0 || teamAbbr == "" {
+			continue
+		}
+		picks = append(picks, DraftPick{
+			PlayerID: pid,
+			TeamAbbr: NormalizeAbbr(teamAbbr),
+		})
+	}
+	return picks, nil
+}
+
 // GetAllPlayers fetches all active players for a season.
 func (c *Client) GetAllPlayers(ctx context.Context, season string) ([]PlayerInfo, error) {
 	resp, err := c.do(ctx, "commonallplayers", url.Values{
