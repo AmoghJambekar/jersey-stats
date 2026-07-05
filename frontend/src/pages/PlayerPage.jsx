@@ -132,7 +132,9 @@ const stacked = (top, bottom) => (
 
 const gameLogColumns = [
   { key: 'game_date', label: 'Date', format: (v) => fmtDate(v) },
-  { key: 'team_id', label: 'Team' },
+  { key: 'team_id', label: 'Team', format: (v) => (
+    <img src={teamLogoUrl(v)} alt={v} className="w-6 h-6 object-contain" />
+  ) },
   { key: 'game', label: 'Game', format: (_, row) => stacked(`${row.away_team} ${row.away_score}`, `${row.home_team} ${row.home_score}`) },
   { key: 'jersey', label: 'Jersey', format: (_, row) => stacked(row.away_jersey || '\u2014', row.home_jersey || '\u2014') },
   { key: 'pts', label: 'PTS' },
@@ -281,7 +283,7 @@ export default function PlayerPage() {
               {bio?.jersey_number ? ` | #${bio.jersey_number}` : ''}
               {bio?.position ? ` | ${bio.position}` : ''}
             </p>
-            <h1 className="text-4xl font-bold text-white uppercase tracking-wider mt-1">
+            <h1 className="text-4xl font-bold text-white tracking-wide mt-1">
               {playerName || `Player ${playerId}`}
             </h1>
           </div>
