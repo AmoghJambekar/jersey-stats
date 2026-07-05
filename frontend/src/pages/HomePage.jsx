@@ -30,12 +30,20 @@ export default function HomePage() {
   }
 
   const renderConference = (label, divisions) => (
-    <div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {divisions.map((div, i) => (
+    <div className="flex">
+      <div className="flex items-center justify-center w-8 shrink-0 mr-6">
+        <span
+          className="text-sm font-bold text-gray-900 uppercase tracking-widest whitespace-nowrap"
+          style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+        >
+          {label}ern
+        </span>
+      </div>
+      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {divisions.map((div) => (
           <div key={div}>
             <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
-              {i === 0 ? `${label}ern \u00B7 ` : ''}{div}
+              {div}
             </h3>
             <div className="space-y-0.5">
               {(byDivision[div] || []).map((team) => (
