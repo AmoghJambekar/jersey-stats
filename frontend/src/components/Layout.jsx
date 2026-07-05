@@ -5,6 +5,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const isPlayer = pathname.startsWith('/players/');
+  const isTeam = pathname.startsWith('/teams/');
+  const isFullWidth = isPlayer || isTeam;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -20,7 +22,7 @@ export default function Layout() {
           </div>
         </nav>
       )}
-      {isPlayer ? (
+      {isFullWidth ? (
         <main>
           <Outlet />
         </main>

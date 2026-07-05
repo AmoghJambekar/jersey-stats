@@ -7,6 +7,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -184,6 +185,22 @@ type playerGameLogResp struct {
 	FTA        int     `json:"fta"`
 	MIN        float64 `json:"min"`
 	PlusMinus  float64 `json:"plus_minus"`
+}
+
+type standingsRowResp struct {
+	TeamID   string `json:"team_id"`
+	TeamName string `json:"team_name"`
+	Wins     int    `json:"wins"`
+	Losses   int    `json:"losses"`
+	Diff     int    `json:"diff"`
+}
+
+type depthChartPlayerResp struct {
+	PlayerID   string  `json:"player_id"`
+	PlayerName string  `json:"player_name"`
+	Position   string  `json:"position"`
+	Height     string  `json:"height"`
+	AvgMin     float64 `json:"avg_min"`
 }
 
 // --- Handlers ---
@@ -581,6 +598,89 @@ func GetPlayerGameLog(q *gen.Queries) http.HandlerFunc {
 				FTA:        toInt(row.Fta),
 				MIN:        toFloat(row.Min),
 				PlusMinus:  toFloat(row.PlusMinus),
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// GetTeamStandings handles GET /api/v1/teams/{teamID}/standings.
+func GetTeamStandings(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		team, err := q.GetTeam(r.Context(), teamID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, "team not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		rows, err := q.GetConferenceStandings(r.Context(), gen.GetConferenceStandingsParams{
+			Conference: team.Conference,
+			Season:     defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]standingsRowResp, len(rows))
+		for i, row := range rows {
+			diff := 0
+			if row.PointDiff != nil {
+				switch v := row.PointDiff.(type) {
+				case int32:
+					diff = int(v)
+				case int64:
+					diff = int(v)
+				case float64:
+					diff = int(v)
+				default:
+					fmt.Sscanf(fmt.Sprintf("%v", v), "%d", &diff)
+				}
+			}
+			out[i] = standingsRowResp{
+				TeamID:   row.TeamID,
+				TeamName: row.TeamName,
+				Wins:     int(row.Wins),
+				Losses:   int(row.Losses),
+				Diff:     diff,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// GetTeamDepthChartHandler handles GET /api/v1/teams/{teamID}/depth-chart.
+func GetTeamDepthChartHandler(q *gen.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teamID := chi.URLParam(r, "teamID")
+
+		rows, err := q.GetTeamDepthChart(r.Context(), gen.GetTeamDepthChartParams{
+			TeamID: teamID,
+			Season: defaultSeason,
+		})
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		out := make([]depthChartPlayerResp, len(rows))
+		for i, row := range rows {
+			name := ""
+			if row.PlayerName != nil {
+				name = fmt.Sprintf("%v", row.PlayerName)
+			}
+			out[i] = depthChartPlayerResp{
+				PlayerID:   row.PlayerID,
+				PlayerName: name,
+				Position:   row.Position,
+				Height:     row.Height,
+				AvgMin:     toFloat(row.AvgMin),
 			}
 		}
 		writeJSON(w, http.StatusOK, out)

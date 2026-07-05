@@ -248,3 +248,39 @@ SELECT DISTINCT draft_year FROM player_bios WHERE draft_year IS NOT NULL ORDER B
 
 -- name: GetDistinctPlayerIDs :many
 SELECT DISTINCT player_id FROM player_game_logs ORDER BY player_id;
+
+-- name: GetConferenceStandings :many
+SELECT t.id AS team_id, t.name AS team_name,
+  COUNT(*) FILTER (WHERE
+    (g.home_team = t.id AND g.home_score > g.away_score)
+    OR (g.away_team = t.id AND g.away_score > g.home_score)
+  )::INT AS wins,
+  COUNT(*) FILTER (WHERE
+    (g.home_team = t.id AND g.home_score < g.away_score)
+    OR (g.away_team = t.id AND g.away_score < g.home_score)
+  )::INT AS losses,
+  COALESCE(SUM(CASE
+    WHEN g.home_team = t.id THEN g.home_score - g.away_score
+    ELSE g.away_score - g.home_score
+  END)::INT, 0) AS point_diff
+FROM teams t
+JOIN games g ON (g.home_team = t.id OR g.away_team = t.id)
+WHERE t.conference = $1 AND g.season = $2 AND g.season_type = 'Regular Season'
+  AND g.home_score IS NOT NULL
+GROUP BY t.id, t.name
+ORDER BY wins DESC, point_diff DESC;
+
+-- name: GetTeamDepthChart :many
+SELECT pgl.player_id, MAX(pgl.player_name) AS player_name,
+  COALESCE(pb.position, '') AS position,
+  COALESCE(pb.height, '') AS height,
+  ROUND(AVG(pgl.min), 1) AS avg_min,
+  COUNT(*)::INT AS games_played
+FROM player_game_logs pgl
+LEFT JOIN player_bios pb ON pb.player_id = pgl.player_id
+JOIN games g ON g.game_id = pgl.game_id
+WHERE pgl.team_id = $1 AND g.season = $2
+  AND g.home_score IS NOT NULL
+GROUP BY pgl.player_id, pb.position, pb.height
+HAVING COUNT(*) >= 5
+ORDER BY avg_min DESC NULLS LAST;

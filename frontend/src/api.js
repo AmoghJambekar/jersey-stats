@@ -59,3 +59,15 @@ export async function fetchPlayerGameLog(playerId) {
   if (!res.ok) throw new Error(`Failed to fetch player game log: ${res.status}`);
   return res.json();
 }
+
+export async function fetchTeamStandings(teamId) {
+  const res = await fetch(`${BASE}/teams/${teamId}/standings`);
+  if (!res.ok) throw new Error(`Failed to fetch team standings: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchTeamDepthChart(teamId) {
+  const res = await fetch(`${BASE}/teams/${teamId}/depth-chart`);
+  if (!res.ok) throw new Error(`Failed to fetch team depth chart: ${res.status}`);
+  return res.json();
+}
