@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { searchPlayers } from '../api';
 
-export default function SearchBar() {
+export default function SearchBar({ compact = false }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -66,14 +66,14 @@ export default function SearchBar() {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-lg">
+    <div ref={wrapperRef} className={`relative w-full ${compact ? '' : 'max-w-lg'}`}>
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Search players..."
-        className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+        className={`w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${compact ? 'px-3 py-1.5 text-sm' : 'px-4 py-3 text-lg shadow-sm'}`}
       />
       {isOpen && results.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
