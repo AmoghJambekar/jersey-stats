@@ -235,7 +235,7 @@ export default function PlayerPage() {
       {/* === BANNER === */}
       <div
         className="relative overflow-hidden"
-        style={{ backgroundColor: colors.primary, minHeight: '260px' }}
+        style={{ backgroundColor: colors.primary, minHeight: '340px' }}
       >
         {/* Watermark logo in background */}
         {logoUrl && (
@@ -244,8 +244,8 @@ export default function PlayerPage() {
             alt=""
             className="absolute pointer-events-none select-none"
             style={{
-              width: '360px',
-              height: '360px',
+              width: '420px',
+              height: '420px',
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
@@ -254,14 +254,14 @@ export default function PlayerPage() {
           />
         )}
 
-        <div className="relative max-w-6xl mx-auto px-4 flex items-end" style={{ minHeight: '260px' }}>
+        <div className="relative max-w-6xl mx-auto px-4 flex items-end" style={{ minHeight: '340px' }}>
           {/* Team logo top-left */}
           {logoUrl && (
             <Link to={currentTeamId ? `/teams/${currentTeamId}` : '/'}>
               <img
                 src={logoUrl}
                 alt={currentTeamName}
-                className="absolute top-4 left-4 w-20 h-20 object-contain drop-shadow-lg"
+                className="absolute top-5 left-5 w-24 h-24 object-contain drop-shadow-lg"
               />
             </Link>
           )}
@@ -271,13 +271,13 @@ export default function PlayerPage() {
             <img
               src={headshotUrl(playerId)}
               alt={playerName || 'Player'}
-              className="w-52 h-40 object-contain object-bottom drop-shadow-xl"
+              className="w-72 h-56 object-contain object-bottom drop-shadow-xl"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
 
           {/* Player info text */}
-          <div className="ml-8 pb-8 z-10">
+          <div className="ml-10 pb-10 z-10">
             <p className="text-white/80 text-sm font-medium tracking-wide">
               {currentTeamName}
               {bio?.jersey_number ? ` | #${bio.jersey_number}` : ''}
