@@ -83,6 +83,8 @@ type teamJerseyStatsResp struct {
 	Losses      int32    `json:"losses"`
 	PPG         float64  `json:"ppg"`
 	OppPPG      float64  `json:"opp_ppg"`
+	RPG         float64  `json:"rpg"`
+	APG         float64  `json:"apg"`
 }
 
 type playerJerseyStatsResp struct {
@@ -322,6 +324,8 @@ func GetTeamJerseyStats(q *gen.Queries) http.HandlerFunc {
 				Losses:      row.Losses,
 				PPG:         toFloat(row.Ppg),
 				OppPPG:      toFloat(row.OppPpg),
+				RPG:         toFloat(row.Rpg),
+				APG:         toFloat(row.Apg),
 			}
 		}
 		writeJSON(w, http.StatusOK, out)

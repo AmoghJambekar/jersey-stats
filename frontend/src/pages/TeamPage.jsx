@@ -12,8 +12,12 @@ const jerseyStatCols = [
   { key: 'games_played', label: 'GP' },
   { key: 'wins', label: 'W' },
   { key: 'losses', label: 'L' },
+  { key: 'win_pct', label: 'WIN%', format: (v) => v != null ? v.toFixed(3).replace(/^0/, '') : '—' },
   { key: 'ppg', label: 'PPG', format: (v) => v?.toFixed(1) },
   { key: 'opp_ppg', label: 'Opp PPG', format: (v) => v?.toFixed(1) },
+  { key: 'rpg', label: 'RPG', format: (v) => v?.toFixed(1) },
+  { key: 'apg', label: 'APG', format: (v) => v?.toFixed(1) },
+  { key: 'diff', label: 'DIFF', format: (v) => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—' },
 ];
 
 const fmtLeader = (l) => l ? `${l.name} (${l.value})` : '';
@@ -89,12 +93,18 @@ const POSITION_MAP = {
   'Michael Porter Jr.': 'SF', 'Ziaire Williams': 'SF', 'Terance Mann': 'SF',
   'Noah Clowney': 'PF', 'Danny Wolf': 'PF',
   'Nic Claxton': 'C',
+  // CLE — Starters: Harden/Mitchell/Wade/Mobley/Allen
+  'James Harden': 'PG', 'Darius Garland': 'PG', 'Dennis Schröder': 'PG', 'Craig Porter Jr.': 'PG',
+  'Donovan Mitchell': 'SG', 'Sam Merrill': 'SG', 'Keon Ellis': 'SG', 'Tyrese Proctor': 'SG',
+  'Dean Wade': 'SF', 'De\'Andre Hunter': 'SF', 'Max Strus': 'SF', 'Jaylon Tyson': 'SF',
+  'Evan Mobley': 'PF', 'Nae\'Qwan Tomlin': 'PF', 'Tristan Enaruna': 'PF', 'Riley Minix': 'PF',
+  'Jarrett Allen': 'C', 'Larry Nance Jr.': 'C', 'Thomas Bryant': 'C',
   // CHA — Starters: Ball/Knueppel/Miller/Bridges/Diabate
   'LaMelo Ball': 'PG', 'Collin Sexton': 'PG',
   'Kon Knueppel': 'SG', 'Sion James': 'SG', 'Coby White': 'SG',
   'Brandon Miller': 'SF', 'Grant Williams': 'SF',
-  'Miles Bridges': 'PF', 'Moussa Diabaté': 'PF',
-  'Ryan Kalkbrenner': 'C',
+  'Miles Bridges': 'PF',
+  'Moussa Diabaté': 'C', 'Ryan Kalkbrenner': 'C',
   // CHI — Starters: Giddey/Okoro/Buzelis/Vucevic + (Tre Jones or Ayo)
   'Josh Giddey': 'PG', 'Tre Jones': 'PG', 'Ayo Dosunmu': 'PG',
   'Coby White': 'SG', 'Anfernee Simons': 'SG',
@@ -149,11 +159,12 @@ const POSITION_MAP = {
   'Jaylen Wells': 'SF', 'Taylor Hendricks': 'SF',
   'Jaren Jackson Jr.': 'PF', 'Santi Aldama': 'PF',
   'Zach Edey': 'C',
-  // MIA — Starters: D.Mitchell/Herro/Wiggins/Adebayo/Ware
-  'Davion Mitchell': 'PG', 'Tyler Herro': 'SG', 'Norman Powell': 'SG',
-  'Andrew Wiggins': 'SF', 'Jaime Jaquez Jr.': 'SF',
-  'Bam Adebayo': 'PF', 'Pelle Larsson': 'SG',
-  "Kel'el Ware": 'C',
+  // MIA — Starters: D.Mitchell/Herro/Powell/Wiggins/Adebayo
+  'Davion Mitchell': 'PG', 'Kasparas Jakučionis': 'PG', 'Dru Smith': 'PG', 'Jahmir Young': 'PG', 'Trevor Keels': 'PG',
+  'Tyler Herro': 'SG', 'Jaime Jaquez Jr.': 'SG', 'Pelle Larsson': 'SG',
+  'Norman Powell': 'SF', 'Simone Fontecchio': 'SF', 'Myron Gardner': 'SF', 'Keshad Johnson': 'SF',
+  'Andrew Wiggins': 'PF', 'Nikola Jović': 'PF',
+  'Bam Adebayo': 'C', "Kel'el Ware": 'C', 'Vladislav Goldin': 'C',
   // MIL — Starters: Rollins/Green/Giannis/Kuzma/Turner (32-50, Giannis hurt)
   'Ryan Rollins': 'PG', 'Kevin Porter Jr.': 'SG', 'AJ Green': 'SG',
   'Giannis Antetokounmpo': 'SF', 'Ousmane Dieng': 'SF', 'Taurean Prince': 'SF',
@@ -233,6 +244,7 @@ const POSITION_MAP = {
 };
 
 const POSITION_ORDER = ['PG', 'SG', 'SF', 'PF', 'C'];
+const POSITION_LABELS = { PG: 'G', SG: 'G', SF: 'F', PF: 'F', C: 'C' };
 
 function buildDepthChart(players) {
   const byPos = { PG: [], SG: [], SF: [], PF: [], C: [] };
@@ -342,6 +354,38 @@ export default function TeamPage() {
   const miniEnd = Math.min(standings.length, miniStart + 10);
   const miniStandings = standings.slice(miniStart, miniEnd);
 
+  // Enrich stats rows with derived fields
+  const enrichedStats = stats.map((row) => ({
+    ...row,
+    win_pct: (row.wins + row.losses) > 0 ? row.wins / (row.wins + row.losses) : null,
+    diff: row.ppg != null && row.opp_ppg != null ? row.ppg - row.opp_ppg : null,
+  }));
+
+  // Compute overall row from jersey stats
+  const overallRow = (() => {
+    if (enrichedStats.length === 0) return null;
+    const totalGP = enrichedStats.reduce((s, r) => s + r.games_played, 0);
+    if (totalGP === 0) return null;
+    const totalW = enrichedStats.reduce((s, r) => s + (r.wins || 0), 0);
+    const totalL = enrichedStats.reduce((s, r) => s + (r.losses || 0), 0);
+    const wavg = (key) => enrichedStats.reduce((s, r) => s + (r[key] || 0) * r.games_played, 0) / totalGP;
+    const ppg = wavg('ppg');
+    const opp_ppg = wavg('opp_ppg');
+    return {
+      edition_name: 'Overall',
+      color_tags: 'Overall',
+      games_played: totalGP,
+      wins: totalW,
+      losses: totalL,
+      win_pct: (totalW + totalL) > 0 ? totalW / (totalW + totalL) : null,
+      ppg,
+      opp_ppg,
+      rpg: wavg('rpg'),
+      apg: wavg('apg'),
+      diff: ppg - opp_ppg,
+    };
+  })();
+
   const tabs = [
     { id: 'stats', label: 'Stats' },
     { id: 'gamelog', label: 'Game Log' },
@@ -435,12 +479,12 @@ export default function TeamPage() {
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 text-gray-500 uppercase">
                   <tr>
-                    <th className="px-2 py-2 text-left font-medium">Pos</th>
-                    <th className="px-2 py-2 text-center font-medium">Starter</th>
-                    <th className="px-2 py-2 text-center font-medium">2nd</th>
-                    <th className="px-2 py-2 text-center font-medium">3rd</th>
-                    <th className="px-2 py-2 text-center font-medium">4th</th>
-                    <th className="px-2 py-2 text-center font-medium">5th</th>
+                    <th className="w-10 px-2 py-2 text-left font-medium">Pos</th>
+                    <th className="px-3 py-2 text-center font-medium">Starter</th>
+                    <th className="px-3 py-2 text-center font-medium">2nd</th>
+                    <th className="px-3 py-2 text-center font-medium">3rd</th>
+                    <th className="px-3 py-2 text-center font-medium">4th</th>
+                    <th className="px-3 py-2 text-center font-medium">5th</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -449,10 +493,10 @@ export default function TeamPage() {
                     const top5 = players.slice(0, 5);
                     return (
                       <tr key={pos}>
-                        <td className="px-2 py-2 font-semibold text-gray-700">{pos}</td>
+                        <td className="w-10 px-2 py-2 font-semibold text-gray-700">{POSITION_LABELS[pos]}</td>
                         {[0, 1, 2, 3, 4].map((idx) => {
                           const p = top5[idx];
-                          if (!p) return <td key={idx} className="px-2 py-2 text-center text-gray-300">—</td>;
+                          if (!p) return <td key={idx} className="px-3 py-2 text-center text-gray-300">—</td>;
                           const parts = p.player_name.split(' ');
                           const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
                           const lastPart = parts[parts.length - 1];
@@ -460,7 +504,7 @@ export default function TeamPage() {
                             ? `${parts[parts.length - 2]} ${lastPart}`
                             : lastPart;
                           return (
-                            <td key={idx} className="px-2 py-2 text-center">
+                            <td key={idx} className="px-3 py-2 text-center">
                               <Link to={`/players/${p.player_id}`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
                                 <img
                                   src={headshotUrl(p.player_id)}
@@ -580,7 +624,7 @@ export default function TeamPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {stats.map((row, i) => (
+                    {enrichedStats.map((row, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         {jerseyStatCols.map((col) => (
                           <td key={col.key} className="px-4 py-3">
@@ -596,6 +640,28 @@ export default function TeamPage() {
                       </tr>
                     ))}
                   </tbody>
+                  {overallRow && (
+                    <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+                      <tr>
+                        {jerseyStatCols.map((col) => {
+                          const val = overallRow[col.key];
+                          if (col.key === 'edition_name') {
+                            return (
+                              <td key={col.key} className="px-4 py-3" colSpan={2}>Overall</td>
+                            );
+                          }
+                          if (col.key === 'color_tags') return null;
+                          return (
+                            <td key={col.key} className="px-4 py-3">
+                              {col.format && val != null && typeof val === 'number'
+                                ? col.format(val, overallRow)
+                                : val ?? ''}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
             )}

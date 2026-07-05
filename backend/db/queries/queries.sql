@@ -68,10 +68,17 @@ SELECT
   ROUND(AVG(CASE
     WHEN g.home_team = $1 THEN g.away_score
     ELSE g.home_score
-  END), 1) AS opp_ppg
+  END), 1) AS opp_ppg,
+  ROUND(AVG(team_reb), 1) AS rpg,
+  ROUND(AVG(team_ast), 1) AS apg
 FROM game_jersey_assignments gja
 JOIN jersey_editions je ON je.id = gja.jersey_id
 JOIN games g ON g.game_id = gja.game_id
+LEFT JOIN (
+  SELECT game_id, team_id, SUM(reb)::NUMERIC AS team_reb, SUM(ast)::NUMERIC AS team_ast
+  FROM player_game_logs
+  GROUP BY game_id, team_id
+) pgl ON pgl.game_id = g.game_id AND pgl.team_id = gja.team_id
 WHERE gja.team_id = $1 AND g.season = $2
   AND g.home_score IS NOT NULL
 GROUP BY je.edition_name, je.color_tags
