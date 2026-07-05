@@ -38,7 +38,6 @@ export default function HomePage() {
     <div className="flex flex-col items-center min-h-[calc(100vh-4rem)]">
       <div className="flex flex-col items-center justify-end gap-4 w-full pb-8 min-h-[40vh]">
         <h1 className="text-4xl font-bold text-gray-900">Jersey Stats</h1>
-        <p className="text-gray-500">Search for a player or select a team below</p>
         <SearchBar />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-6 w-full">
