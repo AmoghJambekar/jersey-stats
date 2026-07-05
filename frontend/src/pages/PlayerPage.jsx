@@ -55,7 +55,7 @@ function teamLogoUrl(teamId) {
 }
 
 function headshotUrl(playerId) {
-  return `https://cdn.nba.com/headshots/nba/latest/260x190/${playerId}.png`;
+  return `https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`;
 }
 
 function darkenHex(hex, amount = 0.25) {
@@ -298,7 +298,7 @@ export default function PlayerPage() {
 
           {/* Right: Bio info grid */}
           {bio && (
-            <div className="flex-1 grid grid-cols-4 grid-rows-2 divide-x divide-y divide-white/20 border-l border-white/20">
+            <div className="flex-1 grid grid-cols-4 grid-rows-2 divide-x divide-y divide-white/20 border border-white/20">
               {[
                 { label: 'HEIGHT', value: bio.height || '—' },
                 { label: 'WEIGHT', value: bio.weight ? `${bio.weight}lb` : '—' },
