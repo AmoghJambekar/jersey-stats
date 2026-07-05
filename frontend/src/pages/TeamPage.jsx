@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchTeam, fetchTeamJerseyStats, fetchTeamGameLog, fetchTeamStandings, fetchTeamDepthChart } from '../api';
 import StatsTable from '../components/StatsTable';
@@ -269,6 +269,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('stats');
+  const [jerseyFilter, setJerseyFilter] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -294,8 +295,28 @@ export default function TeamPage() {
     return () => { cancelled = true; };
   }, [teamId]);
 
+  // Derive the team's jersey per game log row
+  const getTeamJersey = (row) => {
+    return teamId === row.home_team ? row.home_jersey : row.away_jersey;
+  };
+
+  // Unique jerseys for filter dropdown
+  const uniqueJerseys = useMemo(() => {
+    const set = new Set();
+    for (const row of gameLog) {
+      const jersey = getTeamJersey(row);
+      if (jersey) set.add(jersey);
+    }
+    return [...set].sort();
+  }, [gameLog, teamId]);
+
   if (loading) return <p className="text-gray-500 p-6">Loading team...</p>;
   if (error) return <p className="text-red-500 p-6">Error: {error}</p>;
+
+  // Filtered game log rows
+  const filteredGameLog = jerseyFilter
+    ? gameLog.filter((row) => getTeamJersey(row) === jerseyFilter)
+    : gameLog;
 
   const colors = TEAM_COLORS[teamId] || { primary: '#1D428A', secondary: '#002D62' };
   const darkPrimary = darkenHex(colors.primary, 0.3);
@@ -584,7 +605,21 @@ export default function TeamPage() {
         {activeTab === 'gamelog' && (
           <>
             {gameLog.length > 0 ? (
-              <StatsTable columns={gameLogColumns} rows={gameLog} />
+              <>
+                <div className="mb-4">
+                  <select
+                    value={jerseyFilter}
+                    onChange={(e) => setJerseyFilter(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    <option value="">All Jerseys</option>
+                    {uniqueJerseys.map((j) => (
+                      <option key={j} value={j}>{j}</option>
+                    ))}
+                  </select>
+                </div>
+                <StatsTable columns={gameLogColumns} rows={filteredGameLog} />
+              </>
             ) : (
               <p className="text-gray-500">No game log data available.</p>
             )}

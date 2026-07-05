@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { fetchPlayerTeams, fetchPlayerBio, fetchPlayerJerseyStats, fetchPlayerGameLog } from '../api';
 import StatsTable from '../components/StatsTable';
@@ -100,6 +100,7 @@ export default function PlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('stats');
+  const [jerseyFilter, setJerseyFilter] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -125,16 +126,54 @@ export default function PlayerPage() {
     return () => { cancelled = true; };
   }, [playerId]);
 
+  const multiTeam = teams.length > 1;
+
+  // Derive the player's jersey per game log row (the jersey worn by the player's team)
+  const getPlayerJersey = (row) => {
+    const jersey = row.team_id === row.home_team ? row.home_jersey : row.away_jersey;
+    if (!jersey) return null;
+    return multiTeam ? `(${row.team_id}) ${jersey}` : jersey;
+  };
+
+  // Unique jerseys for filter dropdown
+  const uniqueJerseys = useMemo(() => {
+    const set = new Set();
+    for (const row of gameLog) {
+      const jersey = getPlayerJersey(row);
+      if (jersey) set.add(jersey);
+    }
+    return [...set].sort();
+  }, [gameLog, multiTeam]);
+
+  // Game log columns with team-prefixed jersey labels for multi-team players
+  const playerGameLogColumns = useMemo(() => {
+    if (!multiTeam) return gameLogColumns;
+    return gameLogColumns.map((col) => {
+      if (col.key !== 'jersey') return col;
+      return {
+        ...col,
+        format: (_, row) => {
+          const awayLabel = row.away_jersey ? `(${row.away_team}) ${row.away_jersey}` : '\u2014';
+          const homeLabel = row.home_jersey ? `(${row.home_team}) ${row.home_jersey}` : '\u2014';
+          return stacked(awayLabel, homeLabel);
+        },
+      };
+    });
+  }, [multiTeam]);
+
   if (loading) return <p className="text-gray-500 p-6">Loading player...</p>;
   if (error) return <p className="text-red-500 p-6">Error: {error}</p>;
+
+  // Filtered game log rows
+  const filteredGameLog = jerseyFilter
+    ? gameLog.filter((row) => getPlayerJersey(row) === jerseyFilter)
+    : gameLog;
 
   // Use the last team (current/most recent) for coloring
   const currentTeamId = teams.length > 0 ? teams[teams.length - 1].team_id : null;
   const currentTeamName = teams.length > 0 ? teams[teams.length - 1].team_name : '';
   const colors = TEAM_COLORS[currentTeamId] || { primary: '#1D428A', secondary: '#002D62' };
   const darkPrimary = darkenHex(colors.primary, 0.3);
-
-  const multiTeam = teams.length > 1;
 
   // Compute overall/season averages from jersey stats
   const overallRow = (() => {
@@ -397,10 +436,24 @@ export default function PlayerPage() {
         {activeTab === 'gamelog' && (
           <>
             {gameLog.length > 0 ? (
-              <StatsTable
-                columns={multiTeam ? gameLogColumns : gameLogColumns.filter((c) => c.key !== 'team_id')}
-                rows={gameLog}
-              />
+              <>
+                <div className="mb-4">
+                  <select
+                    value={jerseyFilter}
+                    onChange={(e) => setJerseyFilter(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    <option value="">All Jerseys</option>
+                    {uniqueJerseys.map((j) => (
+                      <option key={j} value={j}>{j}</option>
+                    ))}
+                  </select>
+                </div>
+                <StatsTable
+                  columns={multiTeam ? playerGameLogColumns : playerGameLogColumns.filter((c) => c.key !== 'team_id')}
+                  rows={filteredGameLog}
+                />
+              </>
             ) : (
               <p className="text-gray-500">No game log data available.</p>
             )}
