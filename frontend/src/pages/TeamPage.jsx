@@ -502,10 +502,13 @@ export default function TeamPage() {
                           <td className="px-2 py-1.5 text-center">{s.wins}</td>
                           <td className="px-2 py-1.5 text-center">{s.losses}</td>
                           <td className="px-2 py-1.5 text-center">{pct}</td>
-                          <td className="px-2 py-1.5 text-center">
-                            <span className="tracking-wide font-mono">
+                          <td className="px-2 py-1.5">
+                            <span className="flex items-center justify-center gap-0.5">
                               {form.split('').map((ch, i) => (
-                                <span key={i} className={ch === 'W' ? 'text-green-600' : 'text-red-500'}>{ch}</span>
+                                <span
+                                  key={i}
+                                  className={`inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] font-bold text-white ${ch === 'W' ? 'bg-green-600' : 'bg-red-500'}`}
+                                >{ch}</span>
                               ))}
                             </span>
                           </td>
