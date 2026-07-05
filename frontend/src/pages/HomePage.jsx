@@ -2,15 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchTeams } from '../api';
 import SearchBar from '../components/SearchBar';
+import { teamLogoUrl } from '../data/teamData';
 
-const DIVISION_ORDER = [
-  'Atlantic', 'Central', 'Southeast',
-  'Northwest', 'Pacific', 'Southwest',
-];
-
-function logoUrl(nbaId) {
-  return `https://cdn.nba.com/logos/nba/${nbaId}/primary/L/logo.svg`;
-}
+const EAST_DIVISIONS = ['Atlantic', 'Central', 'Southeast'];
+const WEST_DIVISIONS = ['Northwest', 'Pacific', 'Southwest'];
 
 export default function HomePage() {
   const [teams, setTeams] = useState([]);
@@ -26,45 +21,60 @@ export default function HomePage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return <p className="text-gray-500">Loading teams...</p>;
-  if (error) return <p className="text-red-500">Error: {error}</p>;
+  if (loading) return <p className="text-gray-500 p-6">Loading teams...</p>;
+  if (error) return <p className="text-red-500 p-6">Error: {error}</p>;
 
   const byDivision = {};
   for (const t of teams) {
     (byDivision[t.division] ??= []).push(t);
   }
 
-  return (
-    <div className="flex flex-col items-center min-h-[calc(100vh-4rem)]">
-      <div className="flex flex-col items-center justify-end gap-4 w-full pb-8 min-h-[40vh]">
-        <h1 className="text-4xl font-bold text-gray-900">Jersey Stats</h1>
-        <SearchBar />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-6 w-full">
-        {DIVISION_ORDER.map((div) => (
+  const renderConference = (label, divisions) => (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {divisions.map((div, i) => (
           <div key={div}>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              {div} Division
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+              {i === 0 ? `${label}ern \u00B7 ` : ''}{div}
             </h3>
-            <ul className="space-y-2">
+            <div className="space-y-0.5">
               {(byDivision[div] || []).map((team) => (
-                <li key={team.id}>
-                  <Link
-                    to={`/teams/${team.id}`}
-                    className="flex items-center gap-3 hover:bg-gray-100 rounded-md px-2 py-1.5 -mx-2 transition-colors"
-                  >
-                    <img
-                      src={logoUrl(team.nba_id)}
-                      alt={team.name}
-                      className="w-10 h-10 object-contain shrink-0"
-                    />
-                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{team.name}</span>
-                  </Link>
-                </li>
+                <Link
+                  key={team.id}
+                  to={`/teams/${team.id}`}
+                  className="flex items-center gap-3 hover:bg-gray-100 rounded-md px-2 py-1.5 -mx-1 transition-colors"
+                >
+                  <img
+                    src={teamLogoUrl(team.id)}
+                    alt={team.name}
+                    className="w-9 h-9 object-contain shrink-0"
+                  />
+                  <span className="text-sm font-medium text-gray-900">{team.name}</span>
+                </Link>
               ))}
-            </ul>
+            </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Hero */}
+      <div className="flex flex-col items-center justify-end gap-4 w-full pb-10 pt-16">
+        <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight">
+          Jersey<span className="text-blue-600">Stats</span>
+        </h1>
+        <div className="w-full max-w-lg mt-4">
+          <SearchBar />
+        </div>
+      </div>
+
+      {/* Teams */}
+      <div className="max-w-5xl mx-auto px-4 pb-12 space-y-8">
+        {renderConference('East', EAST_DIVISIONS)}
+        {renderConference('West', WEST_DIVISIONS)}
       </div>
     </div>
   );
