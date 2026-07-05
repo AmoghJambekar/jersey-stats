@@ -207,7 +207,6 @@ export default function PlayerPage() {
   const tabs = [
     { id: 'stats', label: 'Stats' },
     { id: 'gamelog', label: 'Game Log' },
-    { id: 'bio', label: 'Bio' },
   ];
 
   return (
@@ -460,9 +459,6 @@ export default function PlayerPage() {
           </>
         )}
 
-        {activeTab === 'bio' && (
-          <p className="text-gray-500">Bio content coming soon.</p>
-        )}
       </div>
     </div>
   );
