@@ -34,19 +34,37 @@ export default function StatsTable({ columns, rows, footerRow }) {
             </tr>
           ))}
         </tbody>
-        {footerRow && (
-          <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
-            <tr>
-              {columns.map((col) => (
-                <td key={col.key} className="px-4 py-3">
-                  {col.format && footerRow[col.key] != null
-                    ? col.format(footerRow[col.key], footerRow)
-                    : footerRow[col.key] ?? ''}
-                </td>
-              ))}
-            </tr>
-          </tfoot>
-        )}
+        {footerRow && (() => {
+          // Compute colSpan groups for footer: merge consecutive columns whose footer value is the same non-empty string
+          const cells = [];
+          let i = 0;
+          while (i < columns.length) {
+            const col = columns[i];
+            const val = footerRow[col.key];
+            // Check if next columns have the same string value to merge
+            let span = 1;
+            if (typeof val === 'string' && val) {
+              while (i + span < columns.length && footerRow[columns[i + span].key] === val) {
+                span++;
+              }
+            }
+            cells.push({ col, val, span });
+            i += span;
+          }
+          return (
+            <tfoot className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+              <tr>
+                {cells.map(({ col, val, span }) => (
+                  <td key={col.key} className="px-4 py-3" colSpan={span > 1 ? span : undefined}>
+                    {col.format && val != null && typeof val === 'number'
+                      ? col.format(val, footerRow)
+                      : val ?? ''}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          );
+        })()}
       </table>
     </div>
   );

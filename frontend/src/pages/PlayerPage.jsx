@@ -92,6 +92,7 @@ export default function PlayerPage() {
     return {
       team_name: 'Overall',
       edition_name: 'Overall',
+      color_tags: 'Overall',
       games_played: totalGP,
       ppg: wavg('ppg'),
       rpg: wavg('rpg'),
