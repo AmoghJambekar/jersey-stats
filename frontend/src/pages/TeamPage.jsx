@@ -69,143 +69,166 @@ const gameLogColumns = [
 
 // --- Depth chart helpers ---
 
-// Hardcoded position assignments for 2025-26 season.
-// Keyed by player name (as returned by API). Players not listed fall back to heuristic.
+// Hardcoded position assignments for 2025-26 season based on most-used starting lineups.
+// Priority: end-of-season / post-deadline lineups. Sorted by starter first within each position.
 const POSITION_MAP = {
-  // ATL
-  'Trae Young': 'PG', 'Nickeil Alexander-Walker': 'PG', 'Dyson Daniels': 'SG',
-  'Vít Krejčí': 'SG', 'Jalen Johnson': 'SF', 'Zaccharie Risacher': 'SF',
-  'Jonathan Kuminga': 'PF', 'Onyeka Okongwu': 'PF', 'Kristaps Porziņģis': 'C',
-  'CJ McCollum': 'SG',
-  // BOS
-  'Payton Pritchard': 'PG', 'Derrick White': 'SG', 'Jaylen Brown': 'SF',
-  'Jayson Tatum': 'PF', 'Neemias Queta': 'C', 'Anfernee Simons': 'PG',
-  'Sam Hauser': 'SF', 'Nikola Vučević': 'C',
-  // BKN
-  'Nolan Traore': 'PG', 'Malachi Smith': 'PG', 'Egor Dëmin': 'SG',
-  'Drake Powell': 'SG', 'Ziaire Williams': 'SF', 'Michael Porter Jr.': 'PF',
-  'Noah Clowney': 'PF', 'Nic Claxton': 'C', 'Danny Wolf': 'C',
-  'Terance Mann': 'SF',
-  // CHA
-  'LaMelo Ball': 'PG', 'Collin Sexton': 'PG', 'Kon Knueppel': 'SG',
-  'Sion James': 'SG', 'Brandon Miller': 'SF', 'Miles Bridges': 'PF',
-  'Grant Williams': 'PF', 'Moussa Diabaté': 'C', 'Ryan Kalkbrenner': 'C',
-  'Coby White': 'SG',
-  // CHI
-  'Josh Giddey': 'PG', 'Tre Jones': 'PG', 'Ayo Dosunmu': 'SG',
-  'Isaac Okoro': 'SF', 'Matas Buzelis': 'PF', 'Nick Richards': 'C',
-  // DAL
-  'Brandon Williams': 'PG', 'Max Christie': 'SG', 'Klay Thompson': 'SG',
-  'Cooper Flagg': 'SF', 'P.J. Washington': 'PF', 'Naji Marshall': 'PF',
-  'Anthony Davis': 'C', 'Daniel Gafford': 'C', 'Khris Middleton': 'SF',
+  // ATL — Starters: Young/Daniels/Risacher/Johnson/Porzingis
+  'Trae Young': 'PG', 'CJ McCollum': 'PG', 'Dyson Daniels': 'SG',
+  'Nickeil Alexander-Walker': 'SG', 'Vít Krejčí': 'SG',
+  'Zaccharie Risacher': 'SF', 'Jonathan Kuminga': 'SF',
+  'Jalen Johnson': 'PF', 'Onyeka Okongwu': 'PF',
+  'Kristaps Porziņģis': 'C',
+  // BOS — Starters: Pritchard/White/Brown/Hauser/Queta (Tatum out for season)
+  'Payton Pritchard': 'PG', 'Anfernee Simons': 'PG',
+  'Derrick White': 'SG', 'Jaylen Brown': 'SF',
+  'Sam Hauser': 'PF', 'Jayson Tatum': 'PF',
+  'Neemias Queta': 'C', 'Nikola Vučević': 'C',
+  // BKN — Starters: Traore/Demin/MPJ/Clowney/Claxton
+  'Nolan Traore': 'PG', 'Malachi Smith': 'PG',
+  'Egor Dëmin': 'SG', 'Drake Powell': 'SG',
+  'Michael Porter Jr.': 'SF', 'Ziaire Williams': 'SF', 'Terance Mann': 'SF',
+  'Noah Clowney': 'PF', 'Danny Wolf': 'PF',
+  'Nic Claxton': 'C',
+  // CHA — Starters: Ball/Knueppel/Miller/Bridges/Diabate
+  'LaMelo Ball': 'PG', 'Collin Sexton': 'PG',
+  'Kon Knueppel': 'SG', 'Sion James': 'SG', 'Coby White': 'SG',
+  'Brandon Miller': 'SF', 'Grant Williams': 'SF',
+  'Miles Bridges': 'PF', 'Moussa Diabaté': 'PF',
+  'Ryan Kalkbrenner': 'C',
+  // CHI — Starters: Giddey/Okoro/Buzelis/Vucevic + (Tre Jones or Ayo)
+  'Josh Giddey': 'PG', 'Tre Jones': 'PG', 'Ayo Dosunmu': 'PG',
+  'Coby White': 'SG', 'Anfernee Simons': 'SG',
+  'Isaac Okoro': 'SF', 'Matas Buzelis': 'PF',
+  'Nikola Vučević': 'C', 'Nick Richards': 'C',
+  // DAL — Starters: Christie/Flagg/Marshall/Washington/Gafford (post-deadline)
+  'Max Christie': 'PG', 'Brandon Williams': 'PG', 'Klay Thompson': 'PG',
+  'Cooper Flagg': 'SF', 'Khris Middleton': 'SF',
+  'Naji Marshall': 'SG', 'P.J. Washington': 'PF',
+  'Anthony Davis': 'C', 'Daniel Gafford': 'C',
   'Marvin Bagley III': 'PF',
-  // DEN
-  'Jamal Murray': 'PG', 'Jalen Pickett': 'PG', 'Christian Braun': 'SG',
-  'Tim Hardaway Jr.': 'SG', 'Cameron Johnson': 'SF', 'Aaron Gordon': 'PF',
-  'Peyton Watson': 'SF', 'Nikola Jokić': 'C', 'Bruce Brown': 'SG',
-  'Spencer Jones': 'SF',
-  // DET
-  'Cade Cunningham': 'PG', 'Daniss Jenkins': 'PG', 'Ausar Thompson': 'SG',
-  'Caris LeVert': 'SG', 'Duncan Robinson': 'SF', 'Tobias Harris': 'PF',
-  'Isaiah Stewart': 'PF', 'Jalen Duren': 'C',
-  // GSW
-  'Stephen Curry': 'PG', "De'Anthony Melton": 'PG', 'Brandin Podziemski': 'SG',
-  'Moses Moody': 'SG', 'Jimmy Butler III': 'SF', 'Draymond Green': 'PF',
-  'Kristaps Porziņģis': 'C', 'Kevon Looney': 'C',
-  // HOU
-  'Reed Sheppard': 'PG', 'Aaron Holiday': 'PG', 'Amen Thompson': 'SG',
-  'Kevin Durant': 'SF', 'Jabari Smith Jr.': 'PF', 'Tari Eason': 'PF',
-  'Alperen Sengun': 'C', 'Steven Adams': 'C', 'Josh Okogie': 'SG',
-  'Dorian Finney-Smith': 'SF',
-  // IND
-  'Andrew Nembhard': 'PG', 'Ben Sheppard': 'PG', 'Bennedict Mathurin': 'SG',
-  'Aaron Nesmith': 'SG', 'Pascal Siakam': 'SF', 'Jarace Walker': 'PF',
-  'Kobe Brown': 'PF', 'Ivica Zubac': 'C', 'Jay Huff': 'C',
-  'Jalen Slawson': 'SF',
-  // LAC
-  'Darius Garland': 'PG', 'Kris Dunn': 'PG', 'James Harden': 'SG',
-  'Jordan Miller': 'SG', 'Kawhi Leonard': 'SF', 'Derrick Jones Jr.': 'SF',
-  'John Collins': 'PF', 'Bennedict Mathurin': 'SG', 'Ivica Zubac': 'C',
-  'Brook Lopez': 'C',
-  // LAL
-  'Marcus Smart': 'PG', 'Austin Reaves': 'SG', 'Luka Dončić': 'SF',
-  'LeBron James': 'PF', 'Deandre Ayton': 'C', 'Luke Kennard': 'SG',
-  'Rui Hachimura': 'PF', 'Jake LaRavia': 'SF',
-  // MEM
-  'Ja Morant': 'PG', 'Walter Clayton Jr.': 'PG', 'Rayan Rupert': 'SG',
-  'Cedric Coward': 'SG', 'Jaylen Wells': 'SF', 'Jaren Jackson Jr.': 'PF',
-  'Taylor Hendricks': 'PF', 'Zach Edey': 'C', 'Santi Aldama': 'C',
-  'Cam Spencer': 'PG',
-  // MIA
+  // DEN — Starters: Murray/Braun/Cameron Johnson/Gordon/Jokic
+  'Jamal Murray': 'PG', 'Jalen Pickett': 'PG',
+  'Christian Braun': 'SG', 'Tim Hardaway Jr.': 'SG', 'Bruce Brown': 'SG',
+  'Cameron Johnson': 'SF', 'Peyton Watson': 'SF', 'Spencer Jones': 'SF',
+  'Aaron Gordon': 'PF', 'Nikola Jokić': 'C',
+  // DET — Starters: Cunningham/Ausar/Robinson/Harris/Duren (60-22 season)
+  'Cade Cunningham': 'PG', 'Daniss Jenkins': 'PG',
+  'Ausar Thompson': 'SG', 'Caris LeVert': 'SG',
+  'Duncan Robinson': 'SF', 'Tobias Harris': 'PF', 'Isaiah Stewart': 'PF',
+  'Jalen Duren': 'C',
+  // GSW — Starters: Curry/Podziemski/Butler/Green/Porzingis (Butler tore ACL)
+  'Stephen Curry': 'PG', "De'Anthony Melton": 'PG',
+  'Brandin Podziemski': 'SG', 'Moses Moody': 'SG',
+  'Jimmy Butler III': 'SF', 'Draymond Green': 'PF',
+  'Kristaps Porziņģis': 'C',
+  // HOU — Starters: Thompson/Sheppard/Durant/Smith/Sengun
+  'Amen Thompson': 'PG', 'Reed Sheppard': 'SG', 'Aaron Holiday': 'PG',
+  'Kevin Durant': 'SF', 'Dorian Finney-Smith': 'SF',
+  'Jabari Smith Jr.': 'PF', 'Tari Eason': 'PF',
+  'Alperen Sengun': 'C', 'Steven Adams': 'C',
+  'Josh Okogie': 'SG',
+  // IND — Starters: Nembhard/Nesmith/Siakam/Walker/Huff (post-deadline, Zubac traded)
+  'Andrew Nembhard': 'PG', 'Ben Sheppard': 'PG',
+  'Aaron Nesmith': 'SG', 'Bennedict Mathurin': 'SG',
+  'Pascal Siakam': 'SF', 'Jalen Slawson': 'SF',
+  'Jarace Walker': 'PF', 'Kobe Brown': 'PF',
+  'Ivica Zubac': 'C', 'Jay Huff': 'C',
+  // LAC — Starters: Garland/Harden/Leonard/Collins/Zubac → post-deadline: Garland/Dunn/Leonard/Collins/Lopez
+  'Darius Garland': 'PG', 'Kris Dunn': 'PG',
+  'James Harden': 'SG', 'Jordan Miller': 'SG',
+  'Kawhi Leonard': 'SF', 'Derrick Jones Jr.': 'SF',
+  'John Collins': 'PF', 'Ivica Zubac': 'C', 'Brook Lopez': 'C',
+  // LAL — Starters: Doncic/Reaves/Hachimura/LeBron/Ayton
+  'Luka Dončić': 'PG', 'Marcus Smart': 'PG',
+  'Austin Reaves': 'SG', 'Luke Kennard': 'SG',
+  'Rui Hachimura': 'SF', 'Jake LaRavia': 'SF',
+  'LeBron James': 'PF', 'Deandre Ayton': 'C',
+  // MEM — Starters: Morant/Rupert/Wells/JJJ/Edey
+  'Ja Morant': 'PG', 'Walter Clayton Jr.': 'PG', 'Cam Spencer': 'PG',
+  'Rayan Rupert': 'SG', 'Cedric Coward': 'SG',
+  'Jaylen Wells': 'SF', 'Taylor Hendricks': 'SF',
+  'Jaren Jackson Jr.': 'PF', 'Santi Aldama': 'PF',
+  'Zach Edey': 'C',
+  // MIA — Starters: D.Mitchell/Herro/Wiggins/Adebayo/Ware
   'Davion Mitchell': 'PG', 'Tyler Herro': 'SG', 'Norman Powell': 'SG',
-  'Andrew Wiggins': 'SF', 'Jaime Jaquez Jr.': 'SF', 'Bam Adebayo': 'PF',
-  'Pelle Larsson': 'SG', "Kel'el Ware": 'C',
-  // MIL
+  'Andrew Wiggins': 'SF', 'Jaime Jaquez Jr.': 'SF',
+  'Bam Adebayo': 'PF', 'Pelle Larsson': 'SG',
+  "Kel'el Ware": 'C',
+  // MIL — Starters: Rollins/Green/Giannis/Kuzma/Turner (32-50, Giannis hurt)
   'Ryan Rollins': 'PG', 'Kevin Porter Jr.': 'SG', 'AJ Green': 'SG',
-  'Giannis Antetokounmpo': 'SF', 'Kyle Kuzma': 'PF', 'Bobby Portis': 'PF',
-  'Myles Turner': 'C', 'Ousmane Dieng': 'SF', 'Cormac Ryan': 'SG',
-  'Taurean Prince': 'SF',
-  // MIN
-  'Mike Conley': 'PG', 'Donte DiVincenzo': 'SG', 'Anthony Edwards': 'SG',
-  'Jaden McDaniels': 'SF', 'Julius Randle': 'PF', 'Rudy Gobert': 'C',
-  'Naz Reid': 'C', 'Bones Hyland': 'PG', 'Kyle Anderson': 'SF',
-  // NOP
-  'Dejounte Murray': 'PG', 'Jeremiah Fears': 'PG', 'Jordan Poole': 'SG',
-  'Saddiq Bey': 'SG', 'Trey Murphy III': 'SF', 'Zion Williamson': 'PF',
-  'Herbert Jones': 'SF', 'Derik Queen': 'C', 'Jose Alvarado': 'PG',
-  'Bryce McGowens': 'SG',
-  // NYK
-  'Jalen Brunson': 'PG', 'Miles McBride': 'PG', 'Mikal Bridges': 'SG',
-  'Landry Shamet': 'SG', 'OG Anunoby': 'SF', 'Josh Hart': 'SF',
-  'Karl-Anthony Towns': 'PF', 'Guerschon Yabusele': 'PF', 'Mitchell Robinson': 'C',
-  'Ariel Hukporti': 'C', 'Tyler Kolek': 'PG', 'Jordan Clarkson': 'SG',
-  'Jeremy Sochan': 'PF', 'Mohamed Diawara': 'SF',
-  // OKC
-  'Cason Wallace': 'PG', 'Shai Gilgeous-Alexander': 'SG', 'Jalen Williams': 'SF',
-  'Ajay Mitchell': 'PG', 'Luguentz Dort': 'SG', 'Chet Holmgren': 'PF',
-  'Isaiah Hartenstein': 'C', 'Isaiah Joe': 'SG',
-  // ORL
-  'Anthony Black': 'PG', 'Jalen Suggs': 'PG', 'Desmond Bane': 'SG',
-  'Franz Wagner': 'SF', 'Paolo Banchero': 'PF', 'Wendell Carter Jr.': 'C',
-  'Tristan da Silva': 'SF', 'Goga Bitadze': 'C', 'Tyus Jones': 'PG',
-  'Jevon Carter': 'SG',
-  // PHI
-  'Tyrese Maxey': 'PG', 'Jared McCain': 'PG', 'VJ Edgecombe': 'SG',
-  'Quentin Grimes': 'SG', 'Paul George': 'SF', 'Kelly Oubre Jr.': 'SF',
-  'Joel Embiid': 'C', 'Andre Drummond': 'C', 'Dominick Barlow': 'PF',
-  'Adem Bona': 'PF',
-  // PHX
-  'Collin Gillespie': 'PG', 'Jordan Goodwin': 'PG', 'Devin Booker': 'SG',
-  'Grayson Allen': 'SG', 'Dillon Brooks': 'SF', 'Jalen Green': 'SG',
-  'Royce O\'Neale': 'PF', 'Oso Ighodaro': 'PF', 'Mark Williams': 'C',
-  'Ryan Dunn': 'SF',
-  // POR
-  'Scoot Henderson': 'PG', 'Caleb Love': 'PG', 'Shaedon Sharpe': 'SG',
-  'Jrue Holiday': 'SG', 'Deni Avdija': 'SF', 'Toumani Camara': 'SF',
-  'Jerami Grant': 'PF', 'Kris Murray': 'PF', 'Donovan Clingan': 'C',
-  'Sidy Cissoko': 'SG',
-  // SAC
-  'Dennis Schröder': 'PG', 'Russell Westbrook': 'PG', 'Zach LaVine': 'SG',
-  'DeMar DeRozan': 'SF', 'Keegan Murray': 'PF', 'Domantas Sabonis': 'C',
-  'Maxime Raynaud': 'C', 'Precious Achiuwa': 'PF', 'Daeqwon Plowden': 'SG',
-  'Nique Clifford': 'SG',
-  // SAS
-  "De'Aaron Fox": 'PG', 'Dylan Harper': 'PG', 'Devin Vassell': 'SG',
-  'Stephon Castle': 'SG', 'Julian Champagnie': 'SF', 'Harrison Barnes': 'SF',
-  'Victor Wembanyama': 'PF', 'Keldon Johnson': 'SF', 'Luke Kornet': 'C',
-  // TOR
-  'Immanuel Quickley': 'PG', 'Jamal Shead': 'PG', 'RJ Barrett': 'SG',
-  "Ja'Kobe Walter": 'SG', 'Brandon Ingram': 'SF', 'Scottie Barnes': 'PF',
-  'Jakob Poeltl': 'C', 'Ochai Agbaji': 'SG', 'Collin Murray-Boyles': 'PF',
+  'Giannis Antetokounmpo': 'SF', 'Ousmane Dieng': 'SF', 'Taurean Prince': 'SF',
+  'Kyle Kuzma': 'PF', 'Bobby Portis': 'PF',
+  'Myles Turner': 'C', 'Cormac Ryan': 'SG',
+  // MIN — Starters: DiVincenzo or Conley/Edwards/McDaniels/Randle/Gobert
+  'Donte DiVincenzo': 'PG', 'Mike Conley': 'PG', 'Bones Hyland': 'PG',
+  'Anthony Edwards': 'SG', 'Ayo Dosunmu': 'SG',
+  'Jaden McDaniels': 'SF', 'Kyle Anderson': 'SF',
+  'Julius Randle': 'PF', 'Rudy Gobert': 'C', 'Naz Reid': 'C',
+  // NOP — Starters: Murray/Bey/Murphy/Williamson/Jones or Queen
+  'Dejounte Murray': 'PG', 'Jeremiah Fears': 'PG', 'Jose Alvarado': 'PG',
+  'Saddiq Bey': 'SG', 'Jordan Poole': 'SG', 'Bryce McGowens': 'SG',
+  'Trey Murphy III': 'SF', 'Herbert Jones': 'SF',
+  'Zion Williamson': 'PF', 'Derik Queen': 'C',
+  // NYK — Starters: Brunson/Bridges/OG/KAT/Hart (Champions)
+  'Jalen Brunson': 'PG', 'Miles McBride': 'PG', 'Tyler Kolek': 'PG',
+  'Mikal Bridges': 'SG', 'Landry Shamet': 'SG', 'Jordan Clarkson': 'SG',
+  'OG Anunoby': 'SF', 'Josh Hart': 'SF', 'Mohamed Diawara': 'SF',
+  'Karl-Anthony Towns': 'PF', 'Guerschon Yabusele': 'PF', 'Jeremy Sochan': 'PF',
+  'Mitchell Robinson': 'C', 'Ariel Hukporti': 'C',
+  // OKC — Starters: SGA/Dort/JWill/Chet/Hartenstein
+  'Shai Gilgeous-Alexander': 'PG', 'Cason Wallace': 'PG', 'Ajay Mitchell': 'PG',
+  'Luguentz Dort': 'SG', 'Isaiah Joe': 'SG',
+  'Jalen Williams': 'SF', 'Chet Holmgren': 'PF',
+  'Isaiah Hartenstein': 'C',
+  // ORL — Starters: Suggs/Bane/Wagner/Banchero/WCJ
+  'Jalen Suggs': 'PG', 'Anthony Black': 'PG', 'Tyus Jones': 'PG',
+  'Desmond Bane': 'SG', 'Jevon Carter': 'SG',
+  'Franz Wagner': 'SF', 'Tristan da Silva': 'SF',
+  'Paolo Banchero': 'PF', 'Wendell Carter Jr.': 'C', 'Goga Bitadze': 'C',
+  // PHI — Starters: Maxey/Edgecombe/George/Oubre/Embiid
+  'Tyrese Maxey': 'PG', 'Jared McCain': 'PG',
+  'VJ Edgecombe': 'SG', 'Quentin Grimes': 'SG',
+  'Paul George': 'SF', 'Kelly Oubre Jr.': 'PF',
+  'Joel Embiid': 'C', 'Andre Drummond': 'C',
+  'Dominick Barlow': 'PF', 'Adem Bona': 'PF',
+  // PHX — Starters: Booker/Green/Brooks/O'Neale/Williams
+  'Devin Booker': 'PG', 'Collin Gillespie': 'PG', 'Jordan Goodwin': 'PG',
+  'Jalen Green': 'SG', 'Grayson Allen': 'SG',
+  'Dillon Brooks': 'SF', 'Ryan Dunn': 'SF',
+  'Royce O\'Neale': 'PF', 'Oso Ighodaro': 'PF',
+  'Mark Williams': 'C',
+  // POR — Starters: Holiday/Sharpe/Avdija/Camara/Clingan
+  'Jrue Holiday': 'PG', 'Scoot Henderson': 'PG', 'Caleb Love': 'PG',
+  'Shaedon Sharpe': 'SG', 'Sidy Cissoko': 'SG',
+  'Deni Avdija': 'SF', 'Jerami Grant': 'SF',
+  'Toumani Camara': 'PF', 'Kris Murray': 'PF',
+  'Donovan Clingan': 'C',
+  // SAC — Starters: Westbrook or Schroder/LaVine/DeRozan/Murray/Sabonis
+  'Dennis Schröder': 'PG', 'Russell Westbrook': 'PG',
+  'Zach LaVine': 'SG', 'Nique Clifford': 'SG', 'Daeqwon Plowden': 'SG',
+  'DeMar DeRozan': 'SF', 'Keegan Murray': 'PF', 'Precious Achiuwa': 'PF',
+  'Domantas Sabonis': 'C', 'Maxime Raynaud': 'C',
+  // SAS — Starters: Fox/Castle/Champagnie/Vassell/Wembanyama
+  "De'Aaron Fox": 'PG', 'Dylan Harper': 'PG',
+  'Stephon Castle': 'SG', 'Keldon Johnson': 'SG',
+  'Julian Champagnie': 'SF', 'Harrison Barnes': 'SF',
+  'Devin Vassell': 'PF', 'Victor Wembanyama': 'C', 'Luke Kornet': 'C',
+  // TOR — Starters: Quickley/Barrett/Ingram/Barnes/Poeltl
+  'Immanuel Quickley': 'PG', 'Jamal Shead': 'PG',
+  'RJ Barrett': 'SG', "Ja'Kobe Walter": 'SG', 'Ochai Agbaji': 'SG',
+  'Brandon Ingram': 'SF', 'Scottie Barnes': 'PF',
+  'Collin Murray-Boyles': 'PF', 'Jakob Poeltl': 'C',
   'Sandro Mamukelashvili': 'C',
-  // UTA
-  'Keyonte George': 'PG', 'Isaiah Collier': 'PG', 'Bez Mbeng': 'SG',
-  'John Konchar': 'SG', 'Lauri Markkanen': 'SF', 'Cody Williams': 'SF',
-  'Ace Bailey': 'PF', 'Brice Sensabaugh': 'PF', 'Walker Kessler': 'C',
-  'Jusuf Nurkić': 'C',
-  // WAS
-  'Bub Carrington': 'PG', 'Tre Johnson': 'SG', 'Bilal Coulibaly': 'SF',
-  'Kyshawn George': 'SF', 'Julian Reese': 'PF', 'Leaky Black': 'PF',
+  // UTA — Starters: George/Mbeng/Markkanen/Bailey/Kessler
+  'Keyonte George': 'PG', 'Isaiah Collier': 'PG',
+  'Bez Mbeng': 'SG', 'John Konchar': 'SG',
+  'Lauri Markkanen': 'SF', 'Cody Williams': 'SF',
+  'Ace Bailey': 'PF', 'Brice Sensabaugh': 'PF',
+  'Walker Kessler': 'C', 'Jusuf Nurkić': 'C',
+  // WAS — Starters: Carrington/Johnson/Coulibaly/George/Sarr
+  'Bub Carrington': 'PG', 'CJ McCollum': 'PG',
+  'Tre Johnson': 'SG', 'Bilal Coulibaly': 'SF',
+  'Kyshawn George': 'PF', 'Leaky Black': 'PF', 'Julian Reese': 'PF',
   'Alex Sarr': 'C', 'Will Riley': 'SF',
 };
 
@@ -292,6 +315,13 @@ export default function TeamPage() {
   // Depth chart data
   const depthByPos = buildDepthChart(depthChart);
 
+  // Mini standings: 2 above + current + 2 below
+  const currentIdx = standings.findIndex((s) => s.team_id === teamId);
+  const firstWins = standings.length > 0 ? standings[0].wins : 0;
+  const miniStart = Math.max(0, Math.min(currentIdx - 2, standings.length - 5));
+  const miniEnd = Math.min(standings.length, miniStart + 5);
+  const miniStandings = standings.slice(miniStart, miniEnd);
+
   const tabs = [
     { id: 'stats', label: 'Stats' },
     { id: 'gamelog', label: 'Game Log' },
@@ -375,54 +405,118 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* === DEPTH CHART === */}
+      {/* === DEPTH CHART + STANDINGS === */}
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Depth Chart</h2>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden max-w-lg">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 text-gray-500 uppercase">
-              <tr>
-                <th className="px-2 py-2 text-left font-medium">Pos</th>
-                <th className="px-2 py-2 text-center font-medium">Starter</th>
-                <th className="px-2 py-2 text-center font-medium">2nd</th>
-                <th className="px-2 py-2 text-center font-medium">3rd</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {POSITION_ORDER.map((pos) => {
-                const players = depthByPos[pos] || [];
-                const top3 = players.slice(0, 3);
-                return (
-                  <tr key={pos}>
-                    <td className="px-2 py-2 font-semibold text-gray-700">{pos}</td>
-                    {[0, 1, 2].map((idx) => {
-                      const p = top3[idx];
-                      if (!p) return <td key={idx} className="px-2 py-2 text-center text-gray-300">—</td>;
-                      const parts = p.player_name.split(' ');
-                      const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
-                      const lastPart = parts[parts.length - 1];
-                      const lastName = suffixes.includes(lastPart) && parts.length > 2
-                        ? `${parts[parts.length - 2]} ${lastPart}`
-                        : lastPart;
+        <div className="grid grid-cols-12 gap-6">
+          {/* Depth Chart (8 cols) */}
+          <div className="col-span-8">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Depth Chart</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 text-gray-500 uppercase">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium">Pos</th>
+                    <th className="px-2 py-2 text-center font-medium">Starter</th>
+                    <th className="px-2 py-2 text-center font-medium">2nd</th>
+                    <th className="px-2 py-2 text-center font-medium">3rd</th>
+                    <th className="px-2 py-2 text-center font-medium">4th</th>
+                    <th className="px-2 py-2 text-center font-medium">5th</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {POSITION_ORDER.map((pos) => {
+                    const players = depthByPos[pos] || [];
+                    const top5 = players.slice(0, 5);
+                    return (
+                      <tr key={pos}>
+                        <td className="px-2 py-2 font-semibold text-gray-700">{pos}</td>
+                        {[0, 1, 2, 3, 4].map((idx) => {
+                          const p = top5[idx];
+                          if (!p) return <td key={idx} className="px-2 py-2 text-center text-gray-300">—</td>;
+                          const parts = p.player_name.split(' ');
+                          const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+                          const lastPart = parts[parts.length - 1];
+                          const lastName = suffixes.includes(lastPart) && parts.length > 2
+                            ? `${parts[parts.length - 2]} ${lastPart}`
+                            : lastPart;
+                          return (
+                            <td key={idx} className="px-2 py-2 text-center">
+                              <Link to={`/players/${p.player_id}`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
+                                <img
+                                  src={headshotUrl(p.player_id)}
+                                  alt={p.player_name}
+                                  className="w-8 h-8 rounded-full object-cover bg-gray-100"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                                <span className="text-[10px] text-gray-700 leading-tight truncate max-w-[80px]">{lastName}</span>
+                              </Link>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mini Standings (4 cols) */}
+          <div className="col-span-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{confLabel} Standings</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {miniStandings.length === 0 ? (
+                <p className="text-gray-400 text-sm p-4">No standings data.</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-2 py-2 text-left font-medium">#</th>
+                      <th className="px-2 py-2 text-left font-medium">Team</th>
+                      <th className="px-2 py-2 text-center font-medium">W</th>
+                      <th className="px-2 py-2 text-center font-medium">L</th>
+                      <th className="px-2 py-2 text-center font-medium">PCT</th>
+                      <th className="px-2 py-2 text-center font-medium">GB</th>
+                      <th className="px-2 py-2 text-center font-medium">DIFF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {miniStandings.map((s) => {
+                      const rank = standings.indexOf(s) + 1;
+                      const pct = (s.wins + s.losses) > 0 ? (s.wins / (s.wins + s.losses)).toFixed(3) : '.000';
+                      const gb = firstWins === s.wins ? '—' : ((firstWins - s.wins) / 1).toFixed(0);
+                      const isCurrent = s.team_id === teamId;
+                      const diffStr = s.diff > 0 ? `+${s.diff}` : `${s.diff}`;
                       return (
-                        <td key={idx} className="px-2 py-2 text-center">
-                          <Link to={`/players/${p.player_id}`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
-                            <img
-                              src={headshotUrl(p.player_id)}
-                              alt={p.player_name}
-                              className="w-8 h-8 rounded-full object-cover bg-gray-100"
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                            <span className="text-[10px] text-gray-700 leading-tight truncate max-w-[80px]">{lastName}</span>
-                          </Link>
-                        </td>
+                        <tr
+                          key={s.team_id}
+                          className={isCurrent ? '' : 'hover:bg-gray-50'}
+                          style={isCurrent ? { backgroundColor: colors.primary + '15' } : undefined}
+                        >
+                          <td className="px-2 py-1.5 text-gray-500">{rank}</td>
+                          <td className="px-2 py-1.5">
+                            <Link to={`/teams/${s.team_id}`} className="flex items-center gap-1 hover:opacity-80">
+                              <img src={teamLogoUrl(s.team_id)} alt={s.team_id} className="w-4 h-4 object-contain" />
+                              <span className={`truncate ${isCurrent ? 'font-semibold' : ''}`}>
+                                {TEAM_NICKNAMES[s.team_id] || s.team_name}
+                              </span>
+                            </Link>
+                          </td>
+                          <td className="px-2 py-1.5 text-center">{s.wins}</td>
+                          <td className="px-2 py-1.5 text-center">{s.losses}</td>
+                          <td className="px-2 py-1.5 text-center">{pct}</td>
+                          <td className="px-2 py-1.5 text-center">{gb}</td>
+                          <td className={`px-2 py-1.5 text-center ${s.diff > 0 ? 'text-green-600' : s.diff < 0 ? 'text-red-500' : ''}`}>
+                            {diffStr}
+                          </td>
+                        </tr>
                       );
                     })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
