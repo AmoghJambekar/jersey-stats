@@ -14,8 +14,10 @@ package httpapi
 
 import (
 	"crypto/subtle"
-	"net/http"
 	"net"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +42,7 @@ func NewRouter(pool *pgxpool.Pool, cfg config.Env) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{cfg.CORSOrigin},
+		AllowedOrigins: []string{cfg.CORSOrigin, "*"},
 		AllowedMethods: []string{"GET", "OPTIONS"},
 	}))
 	r.Use(rateLimiter(60, time.Minute)) // 60 requests per minute per IP
@@ -81,6 +83,23 @@ func NewRouter(pool *pgxpool.Pool, cfg config.Env) http.Handler {
 		r.Use(requireAPIKey(cfg.AdminAPIKey))
 		r.Get("/missing-assignments", handler.MissingAssignments(q))
 	})
+
+	// Serve frontend static files (SPA with index.html fallback)
+	publicDir := "/public"
+	if _, err := os.Stat(publicDir); err == nil {
+		fileServer := http.FileServer(http.Dir(publicDir))
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			// Try serving the exact file first
+			path := filepath.Join(publicDir, filepath.Clean(r.URL.Path))
+			if info, err := os.Stat(path); err == nil && !info.IsDir() {
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+			// SPA fallback: serve index.html for all other routes
+			r.URL.Path = "/"
+			fileServer.ServeHTTP(w, r)
+		})
+	}
 
 	return r
 }

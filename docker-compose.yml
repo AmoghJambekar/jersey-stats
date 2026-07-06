@@ -1,7 +1,7 @@
 # JerseyStats local dev — API + Postgres
 services:
   api:
-    build: ./backend
+    build: .
     ports:
       - "8080:8080"
     environment:
