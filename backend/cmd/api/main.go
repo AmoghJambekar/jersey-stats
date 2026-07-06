@@ -17,6 +17,8 @@ import (
 func main() {
 	cfg := config.Load()
 
+	log.Printf("PORT=%s DATABASE_URL set=%v", cfg.Port, cfg.DatabaseURL != "")
+
 	pool, err := db.Connect(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("db connect: %v", err)
@@ -25,8 +27,9 @@ func main() {
 
 	router := httpapi.NewRouter(pool, cfg)
 
-	log.Printf("starting JerseyStats API on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+	addr := "0.0.0.0:" + cfg.Port
+	log.Printf("starting JerseyStats API on %s", addr)
+	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }

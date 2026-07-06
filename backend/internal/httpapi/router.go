@@ -14,6 +14,7 @@ package httpapi
 
 import (
 	"crypto/subtle"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -87,6 +88,7 @@ func NewRouter(pool *pgxpool.Pool, cfg config.Env) http.Handler {
 	// Serve frontend static files (SPA with index.html fallback)
 	publicDir := "/public"
 	if _, err := os.Stat(publicDir); err == nil {
+		log.Printf("serving frontend from %s", publicDir)
 		fileServer := http.FileServer(http.Dir(publicDir))
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			// Try serving the exact file first
@@ -99,6 +101,8 @@ func NewRouter(pool *pgxpool.Pool, cfg config.Env) http.Handler {
 			r.URL.Path = "/"
 			fileServer.ServeHTTP(w, r)
 		})
+	} else {
+		log.Printf("no frontend at %s, API-only mode", publicDir)
 	}
 
 	return r
