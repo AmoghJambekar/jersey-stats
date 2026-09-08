@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine
 RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
 WORKDIR /src
 COPY go.mod go.sum ./
